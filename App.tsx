@@ -28,7 +28,7 @@ const SessionSavingsBadge: React.FC<{
     >
       <Coins className="w-4 h-4" />
       <span className="text-xs font-bold tracking-wide">
-        <span className="hidden md:inline">Projected Savings: </span>
+        <span className="hidden md:inline">预估节省: </span>
         ${totalPotentialSavings.toFixed(5)} 
         <span className="hidden md:inline"> ({savingsPercent.toFixed(1)}%)</span>
       </span>
@@ -36,7 +36,7 @@ const SessionSavingsBadge: React.FC<{
       {sessionHistory.length === 1 && (
         <div className="absolute top-full right-0 mt-3 w-40 md:w-48 p-2 md:p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-[10px] md:text-xs text-slate-300 text-center animate-fadeIn z-50">
           <div className="absolute -top-1 right-4 md:right-8 w-2 h-2 bg-slate-800 border-l border-t border-slate-700 rotate-45"></div>
-          💡 Scale Simulator active. See how much you'd save!
+          💡 规模模拟器已激活，查看节省了多少！
         </div>
       )}
     </button>
@@ -173,7 +173,7 @@ function App() {
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-3">
                 <span className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300 tracking-tight">
-                  AI Photography Coach
+                  AI 摄影教练
                 </span>
                 <div className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-purple-600 px-3 py-1 rounded-full shadow-lg shadow-purple-500/20 border border-white/10">
                    <Sparkles className="w-3 h-3 text-white fill-white" />
@@ -181,7 +181,7 @@ function App() {
                 </div>
               </div>
               <span className="text-[11px] md:text-xs text-brand-400 font-semibold tracking-wide hidden sm:block uppercase opacity-90">
-                AI Photography Mentor &bull; Spatial Critique &bull; Restoration
+                AI 摄影导师 &bull; 空间分析 &bull; 图像修复
               </span>
             </div>
           </div>
@@ -214,26 +214,26 @@ function App() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-500/10 rounded-full blur-[100px] pointer-events-none"></div>
               
               <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight relative z-10 drop-shadow-sm px-4">
-                Professional Photography <br />
-                Coaching, <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">Reimagined.</span>
+                专业摄影指导 <br />
+                由 AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">重新定义。</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                The <span className="font-semibold text-slate-300">AI Photography Coach</span> uses Gemini 3 Pro to analyze your photos, visualize mistakes, and generate corrections in real-time.
+                The <span className="font-semibold text-slate-300">AI 摄影教练</span> 使用 Gemini 3 Pro 分析您的照片，可视化问题并实时生成修正建议。
               </p>
 
               {/* Feature Badges */}
               <div className="flex flex-wrap justify-center gap-3 md:gap-4 relative z-10 px-4">
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Target className="w-4 h-4 md:w-5 md:h-5 text-rose-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">Spatial Critique</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">空间分析</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">AI Image Generation</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">AI 图像生成</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Coins className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">Context Caching</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">上下文缓存</span>
                 </div>
               </div>
             </div>
@@ -245,7 +245,7 @@ function App() {
             <div className="w-full max-w-4xl pt-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-px bg-slate-800 flex-grow"></div>
-                <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">Or try a sample photo</span>
+                <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">或试试示例照片</span>
                 <div className="h-px bg-slate-800 flex-grow"></div>
               </div>
 
@@ -254,12 +254,12 @@ function App() {
                   onClick={() => handleSampleClick('https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80" alt="Landscape" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80" alt="风景" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">Landscape</span>
+                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">风景</span>
                     <h4 className="font-bold text-white flex items-center gap-2">
-                      Misty Valley <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      雾谷 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
@@ -268,12 +268,12 @@ function App() {
                   onClick={() => handleSampleClick('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80" alt="Portrait" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80" alt="人像" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1 block">Portrait</span>
+                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1 block">人像</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
-                      Urban Light <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      都市光影 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
@@ -285,9 +285,9 @@ function App() {
                   <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80" alt="City" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">Urban</span>
+                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">城市</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
-                      Night City <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      城市夜景 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
@@ -327,9 +327,9 @@ function App() {
                    <div className="w-16 h-16 bg-amber-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                       <Lock className="w-8 h-8 text-amber-500" />
                    </div>
-                   <h3 className="text-xl font-bold text-white mb-2">Access Required</h3>
+                   <h3 className="text-xl font-bold text-white mb-2">需要授权</h3>
                    <p className="text-slate-400 mb-6 text-sm leading-relaxed">
-                     To use the premium Gemini 3 Pro features, please connect a Google Cloud Project with billing enabled.
+                     请配置 API Key 以使用 Gemini 3 Pro 功能。
                    </p>
                    <div className="space-y-3">
                      <button 
@@ -346,13 +346,13 @@ function App() {
                       className="w-full px-6 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-lg transition-colors flex items-center justify-center gap-2 font-medium"
                     >
                       <Coins className="w-4 h-4" />
-                      Connect Project
+                      连接项目
                     </button>
                     <button 
                       onClick={handleReset}
                       className="w-full px-6 py-3 bg-transparent hover:bg-slate-700/50 text-slate-400 hover:text-white rounded-lg transition-colors text-sm"
                     >
-                      Cancel
+                      取消
                     </button>
                    </div>
                 </>
@@ -361,13 +361,13 @@ function App() {
                   <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                      <Target className="w-8 h-8 text-rose-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">Analysis Failed</h3>
+                  <h3 className="text-xl font-bold text-white mb-2">分析失败</h3>
                   <p className="text-slate-400 mb-6 text-sm">{error}</p>
                   <button 
                     onClick={handleReset}
                     className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
                   >
-                    Try Again
+                    重试
                   </button>
                 </>
               )}
@@ -378,7 +378,7 @@ function App() {
       </main>
 
       <footer className="border-t border-slate-800 mt-12 py-8 flex flex-col items-center gap-4 text-slate-600 text-sm">
-        <p>&copy; {new Date().getFullYear()} AI Photography Coach. Built with Google Gemini 3 Pro.</p>
+        <p>&copy; {new Date().getFullYear()} AI 摄影教练. 基于 Google Gemini 3 Pro 构建。</p>
         <div className="flex gap-4">
           <a 
             href="https://github.com/prasadt1/photography-coach-ai-gemini3" 
@@ -387,14 +387,14 @@ function App() {
             className="flex items-center gap-2 hover:text-slate-400 transition-colors"
           >
             <Github className="w-4 h-4" />
-            <span>View Source on GitHub</span>
+            <span>查看源码</span>
           </a>
           <button 
             onClick={startPresentation}
             className="flex items-center gap-2 hover:text-emerald-400 transition-colors"
           >
             <MonitorPlay className="w-4 h-4" />
-            <span>Presentation Mode</span>
+            <span>演示模式</span>
           </button>
         </div>
       </footer>

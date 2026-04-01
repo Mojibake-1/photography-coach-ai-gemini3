@@ -126,7 +126,7 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
       onStateChange(prev => ({ ...prev, messages: [...prev.messages, assistantMsg], isLoading: false }));
     } catch (e: any) {
       console.error(e);
-      onStateChange(prev => ({ ...prev, isLoading: false, error: "Mentor is temporarily unavailable. Please try again." }));
+      onStateChange(prev => ({ ...prev, isLoading: false, error: "导师暂时不可用，请重试。" }));
     }
   };
 
@@ -139,12 +139,12 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
             <MessageCircle className="w-5 h-5" />
           </div>
           <div>
-            <h3 className="text-white font-bold text-sm md:text-base">🤝 Ask Your Photography Mentor</h3>
-            <p className="text-xs text-slate-400">Chat with Gemini 3 Pro about your photo</p>
+            <h3 className="text-white font-bold text-sm md:text-base">🤝 向摄影导师提问</h3>
+            <p className="text-xs text-slate-400">与 Gemini 3 Pro 聊聊你的照片</p>
           </div>
         </div>
         <div className="text-xs font-mono text-slate-500">
-          {turnCount}/5 turns
+          {turnCount}/5 轮
         </div>
       </div>
 
@@ -156,7 +156,7 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
         {chatState.messages.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-slate-500 space-y-2">
             <Bot className="w-10 h-10 opacity-20" />
-            <p className="text-sm">Ask about your composition, settings, or get creative ideas!</p>
+            <p className="text-sm">询问构图、设置或获取创意灵感！</p>
           </div>
         )}
 
@@ -186,16 +186,16 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
                    className="flex items-center gap-1.5 text-[10px] text-slate-500 hover:text-emerald-400 transition-colors uppercase font-bold tracking-wider mb-2"
                  >
                    <Brain className="w-3 h-3" />
-                   {expandedThinkingId === idx ? 'Hide Thinking' : 'Show Thinking'}
+                   {expandedThinkingId === idx ? '隐藏思考过程' : '显示思考过程'}
                  </button>
                  
                  {expandedThinkingId === idx && (
                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400 animate-fadeIn">
-                     <p className="text-emerald-500/70 mb-1 font-bold">&gt; Observations:</p>
+                     <p className="text-emerald-500/70 mb-1 font-bold">&gt; 观察:</p>
                      <ul className="list-disc list-inside mb-2 pl-1 space-y-0.5">
                        {msg.thinking.observations.map((o, i) => <li key={i}>{o}</li>)}
                      </ul>
-                     <p className="text-purple-500/70 mb-1 font-bold">&gt; Reasoning:</p>
+                     <p className="text-purple-500/70 mb-1 font-bold">&gt; 推理:</p>
                      <ul className="list-decimal list-inside mb-2 pl-1 space-y-0.5">
                        {msg.thinking.reasoningSteps.map((s, i) => <li key={i}>{s}</li>)}
                      </ul>
@@ -212,7 +212,7 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
               <Loader2 className="w-4 h-4 animate-spin" />
             </div>
             <div className="p-3 rounded-2xl rounded-tl-none bg-emerald-500/5 border border-emerald-500/10 text-sm text-slate-400 italic">
-              Thinking...
+              思考中...
             </div>
           </div>
         )}
@@ -232,7 +232,7 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
-            placeholder={isLimitReached ? "Session limit reached." : "Ask about composition, lighting, technique..."}
+            placeholder={isLimitReached ? "本次会话已达上限。" : "问问构图、光线、技术方面的问题..."}
             disabled={chatState.isLoading || isLimitReached}
             className="flex-1 bg-slate-900 border border-slate-700 rounded-xl px-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500 disabled:opacity-50 disabled:cursor-not-allowed"
           />
@@ -272,12 +272,12 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   // State for Thinking Process - Expanded by default on load
   const [isThinkingExpanded, setIsThinkingExpanded] = useState(true);
 
-  // NOTE: Local state for Mentor Chat has been removed. 
+  // NOTE: Local state for 导师对话 has been removed. 
   // We now rely on 'mentorChatState' and 'setMentorChatState' props from the parent App component.
 
   const hasBoundingBoxes = analysis.boundingBoxes && analysis.boundingBoxes.length > 0;
   
-  // Auto-show overlays when switching to Detailed Analysis tab
+  // Auto-show overlays when switching to 详细分析 tab
   useEffect(() => {
     if (activeTab === 'details' && hasBoundingBoxes) {
       setShowOverlays(true);
@@ -293,24 +293,24 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
     analysis.scores.subjectImpact
   ) / 5;
 
-  let skillLevel = "Beginner";
+  let skillLevel = "初级";
   let badgeClass = "bg-rose-500/20 text-rose-400 border-rose-500/30";
   // Fallback if API doesn't return learning path (e.g. old response format)
   let nextSkills = analysis.learningPath || ["Master composition basics", "Learn exposure compensation", "Practice aperture priority mode"];
 
   if (averageScore >= 7.5) {
-    skillLevel = "Advanced";
+    skillLevel = "高级";
     badgeClass = "bg-emerald-500/20 text-emerald-400 border-emerald-500/30";
   } else if (averageScore >= 5.5) {
-    skillLevel = "Intermediate";
+    skillLevel = "中级";
     badgeClass = "bg-amber-500/20 text-amber-400 border-amber-500/30";
   }
 
   const chartData = [
-    { subject: 'Composition', A: analysis.scores.composition, fullMark: 10 },
-    { subject: 'Lighting', A: analysis.scores.lighting, fullMark: 10 },
-    { subject: 'Creativity', A: analysis.scores.creativity, fullMark: 10 },
-    { subject: 'Technique', A: analysis.scores.technique, fullMark: 10 },
+    { subject: '构图', A: analysis.scores.composition, fullMark: 10 },
+    { subject: '光线', A: analysis.scores.lighting, fullMark: 10 },
+    { subject: '创意', A: analysis.scores.creativity, fullMark: 10 },
+    { subject: '技术', A: analysis.scores.technique, fullMark: 10 },
     { subject: 'Subject', A: analysis.scores.subjectImpact, fullMark: 10 },
   ];
 
@@ -341,7 +341,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
              try {
                await (window as any).aistudio.openSelectKey();
                // After dialog closes (promise resolves)
-               setGenerationError("Project updated. Click 'Generate Ideal Version' again.");
+               setGenerationError("Project updated. Click '生成理想版本' again.");
              } catch (e) {
                console.error("Failed to open key selector", e);
                setGenerationError("Failed to open project selector. Please reload.");
@@ -366,11 +366,11 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   };
 
   const tabs = [
-    { id: 'overview', label: 'Overview', icon: LayoutDashboard },
-    { id: 'details', label: 'Detailed Analysis', icon: ScanEye },
-    { id: 'mentor', label: 'Mentor Chat', icon: MessageCircle },
-    { id: 'enhance', label: 'AI Enhancement', icon: Wand2 },
-    { id: 'economics', label: 'Economics (Sim)', icon: Coins },
+    { id: 'overview', label: '概览', icon: LayoutDashboard },
+    { id: 'details', label: '详细分析', icon: ScanEye },
+    { id: 'mentor', label: '导师对话', icon: MessageCircle },
+    { id: 'enhance', label: 'AI 增强', icon: Wand2 },
+    { id: 'economics', label: '成本模拟', icon: Coins },
   ];
 
   const totalPotentialSavings = sessionHistory.reduce((acc, curr) => acc + curr.potentialSavings, 0);
@@ -423,7 +423,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                      }`}
                    >
                      <ScanEye className="w-4 h-4" />
-                     {showOverlays ? 'Hide Analysis' : 'Show Analysis'}
+                     {showOverlays ? '隐藏分析' : '显示分析'}
                    </button>
                  </div>
                )}
@@ -457,7 +457,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
               onClick={onReset}
               className="w-full py-3 bg-slate-700 hover:bg-slate-600 text-slate-200 rounded-xl font-medium transition-colors border border-slate-600 min-h-[44px]"
             >
-              Analyze Another Photo
+              分析另一张照片
             </button>
           </div>
         </div>
@@ -496,11 +496,11 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                   <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
                     <h2 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
                       <Star className="text-brand-500 fill-brand-500 w-6 h-6" /> 
-                      Coach's Verdict
+                      教练评价
                     </h2>
                     {/* Skill Badge */}
                     <div className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider border ${badgeClass} self-start md:self-auto`}>
-                      {skillLevel} Photographer
+                      {skillLevel} 级摄影师
                     </div>
                   </div>
 
@@ -511,7 +511,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                   {/* Next Skills Card */}
                   <div className="bg-slate-900/50 rounded-xl p-5 border-l-4 border-emerald-500/50 border-y border-r border-slate-700/50">
                     <h3 className="text-sm font-bold text-slate-200 uppercase tracking-wide mb-3 flex items-center gap-2">
-                      <span className="text-lg">📈</span> Next Skills to Master
+                      <span className="text-lg">📈</span> 下一步需要掌握的技能
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                       {nextSkills.map((skill, i) => (
@@ -550,17 +550,17 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                   </div>
 
                   <div className="space-y-3">
-                    <ScoreCard label="Composition" score={analysis.scores.composition} icon={<Layout className="w-5 h-5"/>} />
-                    <ScoreCard label="Lighting" score={analysis.scores.lighting} icon={<Zap className="w-5 h-5"/>} />
-                    <ScoreCard label="Subject Impact" score={analysis.scores.subjectImpact} icon={<Eye className="w-5 h-5"/>} />
-                    <ScoreCard label="Technique" score={analysis.scores.technique} icon={<Camera className="w-5 h-5"/>} />
+                    <ScoreCard label="构图" score={analysis.scores.composition} icon={<Layout className="w-5 h-5"/>} />
+                    <ScoreCard label="光线" score={analysis.scores.lighting} icon={<Zap className="w-5 h-5"/>} />
+                    <ScoreCard label="主体表现" score={analysis.scores.subjectImpact} icon={<Eye className="w-5 h-5"/>} />
+                    <ScoreCard label="技术" score={analysis.scores.technique} icon={<Camera className="w-5 h-5"/>} />
                   </div>
                 </div>
 
                 <div className="grid md:grid-cols-2 gap-6">
                   <div className="bg-emerald-900/10 border border-emerald-900/50 rounded-2xl p-4 md:p-6">
                     <h3 className="text-emerald-400 font-bold mb-4 flex items-center gap-2">
-                      <span className="bg-emerald-500/10 p-1 rounded">👍</span> What Works
+                      <span className="bg-emerald-500/10 p-1 rounded">👍</span> 亮点
                     </h3>
                     <ul className="space-y-3">
                       {analysis.strengths.map((str, idx) => (
@@ -574,7 +574,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
 
                   <div className="bg-indigo-900/10 border border-indigo-900/50 rounded-2xl p-4 md:p-6">
                     <h3 className="text-indigo-400 font-bold mb-4 flex items-center gap-2">
-                      <span className="bg-indigo-500/10 p-1 rounded">🚀</span> How to Improve
+                      <span className="bg-indigo-500/10 p-1 rounded">🚀</span> 改进建议
                     </h3>
                      <ul className="space-y-3">
                       {analysis.improvements.map((imp, idx) => (
@@ -587,12 +587,12 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                   </div>
                 </div>
 
-                {/* Key Insights for Learning Card */}
+                {/* 核心学习要点 Card */}
                 {analysis.improvements && analysis.improvements.length >= 2 && (
                   <div className="mt-6 bg-slate-800/40 border-l-4 border-emerald-500 rounded-r-2xl p-6 backdrop-blur-sm shadow-lg animate-fadeIn">
                     <h3 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
                       <span className="bg-emerald-500/10 p-1.5 rounded-lg text-lg">🎯</span> 
-                      Key Insights for Learning
+                      核心学习要点
                     </h3>
                     <div className="space-y-4">
                       {analysis.improvements.slice(0, 5).map((insight, idx) => (
@@ -627,9 +627,9 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                              <Brain className="w-5 h-5" />
                            </div>
                            <div className="text-left">
-                             <h3 className="text-white font-bold text-sm md:text-base">🧠 Gemini 3 Pro Thinking Process</h3>
+                             <h3 className="text-white font-bold text-sm md:text-base">🧠 Gemini 3 Pro 思考过程</h3>
                              <div className="flex items-center gap-2">
-                               <p className="text-xs text-slate-400 font-mono mt-0.5">Deep reasoning analysis</p>
+                               <p className="text-xs text-slate-400 font-mono mt-0.5">深度推理分析</p>
                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 rounded font-mono">thinking_level: high</span>
                              </div>
                            </div>
@@ -642,7 +642,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                            {/* Observations */}
                            <div>
                              <h4 className="flex items-center gap-2 text-emerald-400 font-bold mb-3 uppercase text-xs tracking-wider">
-                               <Eye className="w-4 h-4" /> Key Observations
+                               <Eye className="w-4 h-4" /> 关键观察
                              </h4>
                              <ul className="space-y-2 pl-2 border-l border-emerald-500/20">
                                {analysis.thinking.observations.map((obs, i) => (
@@ -651,10 +651,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                              </ul>
                            </div>
 
-                           {/* Reasoning Steps */}
+                           {/* 推理步骤 */}
                            <div>
                              <h4 className="flex items-center gap-2 text-purple-400 font-bold mb-3 uppercase text-xs tracking-wider">
-                               <Brain className="w-4 h-4" /> Reasoning Steps
+                               <Brain className="w-4 h-4" /> 推理步骤
                              </h4>
                              <ol className="space-y-3">
                                {analysis.thinking.reasoningSteps.map((step, i) => (
@@ -666,10 +666,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                              </ol>
                            </div>
 
-                           {/* Priority Fixes */}
+                           {/* 优先修复项 */}
                            <div>
                              <h4 className="flex items-center gap-2 text-amber-400 font-bold mb-3 uppercase text-xs tracking-wider">
-                               <Target className="w-4 h-4" /> Priority Fixes
+                               <Target className="w-4 h-4" /> 优先修复项
                              </h4>
                              <div className="space-y-2">
                                {analysis.thinking.priorityFixes.map((fix, i) => (
@@ -689,13 +689,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                 )}
                 
                 <div className="space-y-6">
-                  <h3 className="text-xl font-bold text-slate-100 pb-2">Technical Deep Dive</h3>
+                  <h3 className="text-xl font-bold text-slate-100 pb-2">技术深度分析</h3>
                   
                   <div className="grid grid-cols-1 gap-6">
                     <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 md:p-6">
                       <div className="flex items-center gap-3 text-brand-400 font-medium mb-3">
                         <div className="p-2 bg-brand-500/10 rounded-lg"><Layout className="w-5 h-5" /></div>
-                        <h4 className="text-lg text-white">Composition Analysis</h4>
+                        <h4 className="text-lg text-white">构图 Analysis</h4>
                       </div>
                       <p className="text-slate-300 leading-relaxed text-sm md:text-base">
                         {analysis.critique.composition}
@@ -705,7 +705,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                     <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 md:p-6">
                       <div className="flex items-center gap-3 text-amber-400 font-medium mb-3">
                          <div className="p-2 bg-amber-500/10 rounded-lg"><Zap className="w-5 h-5" /></div>
-                        <h4 className="text-lg text-white">Lighting Analysis</h4>
+                        <h4 className="text-lg text-white">光线 Analysis</h4>
                       </div>
                       <p className="text-slate-300 leading-relaxed text-sm md:text-base">
                         {analysis.critique.lighting}
@@ -715,7 +715,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                     <div className="bg-slate-800/40 border border-slate-700 rounded-2xl p-4 md:p-6">
                       <div className="flex items-center gap-3 text-blue-400 font-medium mb-3">
                          <div className="p-2 bg-blue-500/10 rounded-lg"><Camera className="w-5 h-5" /></div>
-                        <h4 className="text-lg text-white">Technical Execution</h4>
+                        <h4 className="text-lg text-white">技术执行</h4>
                       </div>
                       <p className="text-slate-300 leading-relaxed text-sm md:text-base">
                         {analysis.critique.technique}
@@ -728,13 +728,13 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                       <div className="mb-4">
                         <h3 className="text-xl font-bold text-slate-100 mb-2 flex items-center gap-2">
                           <Map className="w-5 h-5 text-slate-400" />
-                          Detected Spatial Issues
+                          检测到的空间问题
                         </h3>
                         <div className="flex items-start gap-2 text-sm text-slate-400 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
                            <MousePointerClick className="w-4 h-4 text-brand-400 mt-0.5 flex-shrink-0" />
                            <p>
-                             Gemini has mapped specific feedback directly onto your photo. 
-                             <strong className="text-brand-400 ml-1">Hover over the colored boxes on the left</strong> to read detailed tooltips about each issue.
+                             Gemini 已将具体反馈标注在您的照片上。 
+                             <strong className="text-brand-400 ml-1">将鼠标悬停在左侧的彩色框上</strong> 查看每个问题的详细提示。
                            </p>
                         </div>
                       </div>
@@ -755,7 +755,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                                </span>
                              </div>
                              <p className="text-sm font-medium text-slate-200 mb-1">{box.description}</p>
-                             <p className="text-xs text-slate-400 italic">Suggestion: {box.suggestion}</p>
+                             <p className="text-xs text-slate-400 italic">建议: {box.suggestion}</p>
                            </div>
                         ))}
                       </div>
@@ -783,10 +783,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                 <div className="bg-gradient-to-r from-brand-900/40 to-indigo-900/40 p-6 md:p-8 rounded-t-[22px]">
                   <div className="flex items-center gap-3 mb-2">
                     <Wand2 className="w-6 h-6 text-brand-400" />
-                    <h3 className="text-xl font-bold text-white">AI Restoration Studio</h3>
+                    <h3 className="text-xl font-bold text-white">AI 修复工作室</h3>
                   </div>
                   <p className="text-slate-400 text-sm">
-                    Use Gemini 3 Pro to visualize your photo with the suggested improvements applied.
+                    使用 Gemini 3 Pro 将建议的改进效果可视化。
                   </p>
                 </div>
 
@@ -798,7 +798,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         className="group relative inline-flex items-center justify-center px-8 py-3 font-semibold text-white transition-all duration-200 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-full hover:from-indigo-500 hover:to-purple-500 hover:shadow-lg hover:shadow-indigo-500/30 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 focus:ring-offset-slate-800"
                        >
                          <Wand2 className="w-5 h-5 mr-2 animate-pulse" />
-                         ✨ Generate Ideal Version
+                         ✨ 生成理想版本
                        </button>
                        {generationError && (
                          <div className="mt-4 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 max-w-md mx-auto text-center">
@@ -821,10 +821,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                     <div className="space-y-6 animate-fadeIn">
                       {/* Comparison Container - Opacity Blend Mode */}
                       <div className="relative w-full aspect-[4/3] max-h-[500px] bg-black rounded-xl overflow-hidden shadow-2xl border border-slate-700 select-none group">
-                        {/* Background: Original */}
+                        {/* Background: 原图 */}
                         <img 
                           src={imageSrc} 
-                          alt="Original" 
+                          alt="原图" 
                           className="absolute inset-0 w-full h-full object-contain" 
                         />
                         
@@ -838,10 +838,10 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
 
                         {/* Labels */}
                         <div className={`absolute top-4 left-4 bg-black/60 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white z-10 border border-white/20 transition-opacity duration-300 ${sliderValue > 90 ? 'opacity-0' : 'opacity-100'}`}>
-                          Original
+                          原图
                         </div>
                         <div className={`absolute top-4 right-4 bg-indigo-600/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-white z-10 border border-white/20 shadow-lg shadow-indigo-500/20 transition-opacity duration-300 ${sliderValue < 10 ? 'opacity-0' : 'opacity-100'}`}>
-                          AI-Corrected
+                          AI 修正
                         </div>
 
                         {/* Slider UI at Bottom */}
@@ -882,7 +882,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                           className="flex items-center gap-2 px-6 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium min-h-[44px]"
                         >
                           <Download className="w-4 h-4" />
-                          Download Corrected Image
+                          下载修正后的图片
                         </button>
                       </div>
                     </div>

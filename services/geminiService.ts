@@ -19,7 +19,7 @@ const PRICING = {
 
 // Core photography principles
 const PHOTOGRAPHY_PRINCIPLES = `
-You are an expert photography coach. Your goal is to provide constructive criticism to help the photographer improve. You have deep knowledge of:
+You are an expert photography coach. Your goal is to provide constructive criticism to help the photographer improve. Please respond in Chinese (Simplified Chinese / 简体中文). You have deep knowledge of:
 
 COMPOSITION RULES:
 - Rule of Thirds: Divide frame into 9 equal parts, place subjects at intersections
@@ -118,7 +118,7 @@ export const analyzeImage = async (base64Image: string, mimeType: string): Promi
 
   const generateContent = async () => {
     return await ai.models.generateContent({
-      model: 'gemini-3-pro-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro
+      model: process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro
       contents: {
         role: 'user',
         parts: [
@@ -291,7 +291,7 @@ export const generateCorrectedImage = async (base64Image: string, mimeType: stri
 
   const generateImg = async () => {
     return await ai.models.generateContent({
-      model: 'gemini-3-pro-image-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro Image
+      model: process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-pro-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro Image
       contents: {
         role: 'user',
         parts: [
@@ -343,7 +343,7 @@ Photography Analysis Context:
     ? conversationHistory.map(m => `${m.role === 'user' ? 'User' : 'Mentor'}: ${m.content}`).join('\n')
     : '';
   
-  const mentorPrompt = `You are an expert photography mentor. A photographer has uploaded their image and you've already analyzed it.
+  const mentorPrompt = `You are an expert photography mentor. Please respond in Chinese (Simplified Chinese / 简体中文). A photographer has uploaded their image and you've already analyzed it.
 
 ${contextSummary}
 
@@ -358,7 +358,7 @@ Return response as JSON:
 
   const generateMentorResponse = async () => {
     return await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview',
       contents: {
         role: 'user',
         parts: [

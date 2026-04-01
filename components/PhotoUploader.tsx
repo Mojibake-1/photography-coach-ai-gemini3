@@ -7,11 +7,11 @@ interface PhotoUploaderProps {
 }
 
 const THINKING_STEPS = [
-  { text: "Examining composition and framing...", icon: Brain },
-  { text: "Analyzing lighting conditions...", icon: Zap },
-  { text: "Identifying technical issues...", icon: Target },
-  { text: "Evaluating subject impact...", icon: Eye },
-  { text: "Generating recommendations...", icon: Sparkles },
+  { text: "正在分析构图和取景...", icon: Brain },
+  { text: "正在分析光线条件...", icon: Zap },
+  { text: "正在识别技术问题...", icon: Target },
+  { text: "正在评估主体表现...", icon: Eye },
+  { text: "正在生成建议...", icon: Sparkles },
 ];
 
 const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyzing }) => {
@@ -62,7 +62,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
 
   const processFile = (file: File) => {
     if (!file.type.startsWith('image/')) {
-      alert("Please upload an image file");
+      alert("请上传图片文件");
       return;
     }
     const reader = new FileReader();
@@ -109,7 +109,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
                 <Loader2 className="w-16 h-16 text-brand-400 animate-spin relative z-10" />
               </div>
               
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">🧠 Gemini 3 Pro is thinking...</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">🧠 Gemini 3 Pro 思考中...</h3>
               
               {/* Simulated Thinking Console */}
               <div className="w-full mt-6 bg-slate-950/80 rounded-xl border border-slate-800 p-4 font-mono text-sm text-left shadow-inner">
@@ -165,18 +165,18 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
               </div>
 
               <h3 className="text-2xl md:text-3xl font-bold text-white mb-3 tracking-tight">
-                Upload a photo to get <br/>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-emerald-300">expert feedback in seconds</span>
+                上传照片即可获得 <br/>
+                <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-300 to-emerald-300">秒级专业反馈</span>
               </h3>
               <p className="text-base md:text-lg text-slate-400 max-w-md mb-8 leading-relaxed">
-                Drag and drop your image here, or click to browse.
+                拖放图片到这里，或点击浏览选择。
                 <br />
-                <span className="text-sm text-slate-500 mt-2 block">Supports JPG, PNG, WEBP (Max 10MB)</span>
+                <span className="text-sm text-slate-500 mt-2 block">支持 JPG、PNG、WEBP（最大 10MB）</span>
               </p>
               
               <div className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-700/50 rounded-full text-slate-200 text-sm font-semibold border border-slate-600 group-hover:bg-brand-600 group-hover:text-white group-hover:border-brand-500 transition-all duration-300 shadow-lg flex items-center gap-2">
                 <ArrowUp className="w-4 h-4" />
-                Start Analysis
+                开始分析
               </div>
             </>
           )}
