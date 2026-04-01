@@ -193,7 +193,7 @@ function App() {
               
               <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight relative z-10 drop-shadow-sm px-4">
                 别让潜在的爆款， <br />
-                折损在一张瑕疵 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">图上。</span>
+                折损在一张 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">瑕疵图</span>上。
               </h1>
               <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
                 跨越传统的摄影与后期边界。借助最新多模态大模型的推理能力，精准解构商品主图、A+与展示页的营销逻辑，帮助品牌构建真正能够打动核心消费者的 <span className="font-semibold text-slate-300">视觉体系。</span>
