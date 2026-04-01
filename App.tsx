@@ -232,7 +232,7 @@ function App() {
                   onClick={() => handleSampleClick('sample1')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample1_v2.jpg" alt="多场景合成诊断" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample1_v2_thumb.jpg" alt="多场景合成诊断" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
                     <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1 block">多场景合成诊断</span>
@@ -246,7 +246,7 @@ function App() {
                   onClick={() => handleSampleClick('sample2')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample2_new.jpg" alt="灾难合成诊断" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample2_new_thumb.jpg" alt="灾难合成诊断" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
                     <span className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1 block">灾难级合成诊断</span>
@@ -260,7 +260,7 @@ function App() {
                   onClick={() => handleSampleClick('sample3')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample3_new.jpg" alt="为排版留白范例" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample3_new_thumb.jpg" alt="为排版留白范例" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
                     <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">为排版留白范例</span>
@@ -274,7 +274,7 @@ function App() {
                   onClick={() => handleSampleClick('sample4')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample4.jpg" alt="高转化视觉层级" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample4_thumb.jpg" alt="高转化视觉层级" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
                     <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1 block">A+副图场景解析</span>
@@ -288,7 +288,7 @@ function App() {
                   onClick={() => handleSampleClick('sample5')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample5.jpg" alt="微距质感与女性向营销" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample5_thumb.jpg" alt="微距质感与女性向营销" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
                     <span className="text-xs font-bold text-pink-400 uppercase tracking-wider mb-1 block">微距质感展示</span>
