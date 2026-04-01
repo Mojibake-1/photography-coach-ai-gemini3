@@ -74,7 +74,7 @@ function App() {
   const sampleUrls = {
     sample1: '/sample1_new.png',
     sample2: '/sample2.png',
-    sample3: '/sample3.jpg'
+    sample3: '/sample3_new.jpg'
   };
 
   const handleSampleClick = async (sampleKey: keyof typeof sampleAnalyses) => {
@@ -258,12 +258,12 @@ function App() {
                   onClick={() => handleSampleClick('sample3')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="/sample3.jpg" alt="情感营销图" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample3_new.jpg" alt="为排版留白范例" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">情感营销图</span>
+                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">为排版留白范例</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
-                       透视错误诊断 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                       商业海报负空间 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
