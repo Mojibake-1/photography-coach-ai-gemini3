@@ -151,15 +151,15 @@ function App() {
             <div className="flex flex-col justify-center">
               <div className="flex items-center gap-3">
                 <span className="text-xl md:text-2xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-300 tracking-tight">
-                  AI 摄影教练
+                  E-Commerce Vision AI
                 </span>
                 <div className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-purple-600 px-3 py-1 rounded-full shadow-lg shadow-purple-500/20 border border-white/10">
                    <Sparkles className="w-3 h-3 text-white fill-white" />
-                   <span className="text-[11px] font-bold text-white tracking-wide uppercase">Gemini 3 Pro</span>
+                   <span className="text-[11px] font-bold text-white tracking-wide uppercase">Gemini 3.0 Vision</span>
                 </div>
               </div>
               <span className="text-[11px] md:text-xs text-brand-400 font-semibold tracking-wide hidden sm:block uppercase opacity-90">
-                AI 摄影导师 &bull; 空间分析 &bull; 图像修复
+                视觉销售心理学 &bull; 商业级后期 &bull; 场景差异化
               </span>
             </div>
           </div>
@@ -192,26 +192,26 @@ function App() {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[300px] h-[300px] md:w-[500px] md:h-[500px] bg-brand-500/10 rounded-full blur-[100px] pointer-events-none"></div>
               
               <h1 className="text-3xl md:text-5xl lg:text-7xl font-extrabold text-white tracking-tight leading-tight relative z-10 drop-shadow-sm px-4">
-                专业摄影指导 <br />
-                由 AI <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">重新定义。</span>
+                用 CVR（转化率）的眼光， <br />
+                审视每一张商业 <span className="text-transparent bg-clip-text bg-gradient-to-r from-brand-400 to-emerald-400">资产。</span>
               </h1>
               <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto leading-relaxed">
-                The <span className="font-semibold text-slate-300">AI 摄影教练</span> 使用 Gemini 3 Pro 分析您的照片，可视化问题并实时生成修正建议。
+                跨越传统的摄影与后期边界。借助最新多模态大模型的推理能力，精准解构商品主图、A+与展示页的营销逻辑，帮助品牌构建真正能够打动核心消费者的 <span className="font-semibold text-slate-300">视觉体系。</span>
               </p>
 
               {/* Feature Badges */}
               <div className="flex flex-wrap justify-center gap-3 md:gap-4 relative z-10 px-4">
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Target className="w-4 h-4 md:w-5 md:h-5 text-rose-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">空间分析</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">排版与负空间诊断</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Sparkles className="w-4 h-4 md:w-5 md:h-5 text-amber-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">AI 图像生成</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">光影合成雷达</span>
                 </div>
                 <div className="flex items-center gap-2 px-4 py-2 md:px-6 md:py-3 rounded-full bg-gradient-to-br from-slate-800 to-slate-900 border border-slate-700/50 shadow-xl backdrop-blur-md group hover:border-brand-500/30 transition-colors">
                   <Coins className="w-4 h-4 md:w-5 md:h-5 text-emerald-400 group-hover:scale-110 transition-transform" />
-                  <span className="text-xs md:text-sm font-semibold text-slate-200">上下文缓存</span>
+                  <span className="text-xs md:text-sm font-semibold text-slate-200">上下文缓存提升效率</span>
                 </div>
               </div>
             </div>
