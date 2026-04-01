@@ -6,6 +6,7 @@ import AnalysisResults, { TabId } from './components/AnalysisResults';
 import { PresentationSlides } from './components/PresentationSlides';
 import { analyzeImage, getAnalysisPromptTemplate } from './services/geminiService';
 import { PhotoAnalysis, AppState, SessionCostMetric, MentorChatState } from './types';
+import { sampleAnalyses } from './data/sampleAnalyses';
 
 // Floating badge component for the header
 const SessionSavingsBadge: React.FC<{ 
@@ -70,15 +71,38 @@ function App() {
     setAppState(AppState.MANUAL_MODE);
   };
 
-  const handleSampleClick = async (url: string) => {
+  const sampleUrls = {
+    sample1: '/sample1.jpg',
+    sample2: '/sample2.png',
+    sample3: '/sample3.jpg'
+  };
+
+  const handleSampleClick = async (sampleKey: keyof typeof sampleAnalyses) => {
     setAppState(AppState.ANALYZING);
     try {
+      const url = sampleUrls[sampleKey as keyof typeof sampleUrls];
       const response = await fetch(url);
       const blob = await response.blob();
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64 = reader.result as string;
-        handleImageSelected(base64, blob.type);
+        setCurrentImage(base64);
+        
+        // Mock token usage for UI continuity
+        const analysis = { ...sampleAnalyses[sampleKey] };
+        analysis.tokenUsage = {
+          realCachedTokens: 0,
+          realNewTokens: 2500,
+          totalTokens: 3000,
+          realCost: 0,
+          projectedCachedTokens: Math.floor(Math.random() * 5000),
+          projectedCostWithCache: 0,
+          projectedSavings: 0
+        };
+
+        setAnalysis(analysis);
+        setAppState(AppState.RESULTS);
+        setActiveResultTab('overview');
       };
       reader.readAsDataURL(blob);
     } catch (e) {
@@ -203,43 +227,43 @@ function App() {
 
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <button 
-                  onClick={() => handleSampleClick('https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80')}
+                  onClick={() => handleSampleClick('sample1')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="https://images.unsplash.com/photo-1472214103451-9374bd1c798e?w=800&q=80" alt="风景" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample1.jpg" alt="主图细节" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">风景</span>
+                    <span className="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-1 block">A+ 细节图</span>
                     <h4 className="font-bold text-white flex items-center gap-2">
-                      雾谷 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      材质排版检查 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
 
                 <button 
-                  onClick={() => handleSampleClick('https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80')}
+                  onClick={() => handleSampleClick('sample2')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=800&q=80" alt="人像" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample2.png" alt="使用场景" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-purple-400 uppercase tracking-wider mb-1 block">人像</span>
+                    <span className="text-xs font-bold text-rose-400 uppercase tracking-wider mb-1 block">场景合成图</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
-                      都市光影 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                      泡沫穿帮分析 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
 
                  <button 
-                  onClick={() => handleSampleClick('https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80')}
+                  onClick={() => handleSampleClick('sample3')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
                 >
-                  <img src="https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&q=80" alt="City" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                  <img src="/sample3.jpg" alt="情感营销图" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                    <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
                   <div className="absolute bottom-4 left-4 text-left">
-                    <span className="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1 block">城市</span>
+                    <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">情感营销图</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
-                      城市夜景 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                       透视错误诊断 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
