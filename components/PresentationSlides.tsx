@@ -313,7 +313,7 @@ export const PresentationSlides = ({ onExit, initialSlide = 1 }: PresentationSli
                <div className="text-left">
                  <h3 className="text-5xl font-bold text-white mb-2 tracking-tight">~95% Savings</h3>
                  <p className="text-slate-400 text-lg max-w-md leading-relaxed">
-                   Projected efficiency for high-volume enterprise workloads utilizing <span className="text-emerald-400 font-semibold">Context Caching</span> (>32k tokens).
+                   Projected efficiency for high-volume enterprise workloads utilizing <span className="text-emerald-400 font-semibold">Context Caching</span> (&gt;32k tokens).
                  </p>
                </div>
             </div>

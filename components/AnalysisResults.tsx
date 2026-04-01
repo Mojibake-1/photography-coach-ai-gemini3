@@ -191,11 +191,11 @@ const MentorChatWidget: React.FC<MentorChatWidgetProps> = ({ imageSrc, analysis,
                  
                  {expandedThinkingId === idx && (
                    <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 text-xs font-mono text-slate-400 animate-fadeIn">
-                     <p className="text-emerald-500/70 mb-1 font-bold">> Observations:</p>
+                     <p className="text-emerald-500/70 mb-1 font-bold">&gt; Observations:</p>
                      <ul className="list-disc list-inside mb-2 pl-1 space-y-0.5">
                        {msg.thinking.observations.map((o, i) => <li key={i}>{o}</li>)}
                      </ul>
-                     <p className="text-purple-500/70 mb-1 font-bold">> Reasoning:</p>
+                     <p className="text-purple-500/70 mb-1 font-bold">&gt; Reasoning:</p>
                      <ul className="list-decimal list-inside mb-2 pl-1 space-y-0.5">
                        {msg.thinking.reasoningSteps.map((s, i) => <li key={i}>{s}</li>)}
                      </ul>
