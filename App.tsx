@@ -166,7 +166,7 @@ function App() {
                 </span>
                 <div className="hidden sm:flex items-center gap-1.5 bg-gradient-to-r from-emerald-500 to-purple-600 px-3 py-1 rounded-full shadow-lg shadow-purple-500/20 border border-white/10">
                    <Sparkles className="w-3 h-3 text-white fill-white" />
-                   <span className="text-[11px] font-bold text-white tracking-wide uppercase">Gemini 3.0 Vision</span>
+                   <span className="text-[11px] font-bold text-white tracking-wide uppercase">GPT-5.4 Vision</span>
                 </div>
               </div>
               <span className="text-[11px] md:text-xs text-brand-400 font-semibold tracking-wide hidden sm:block uppercase opacity-90">

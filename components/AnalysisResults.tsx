@@ -626,7 +626,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                              <Brain className="w-5 h-5" />
                            </div>
                            <div className="text-left">
-                             <h3 className="text-white font-bold text-sm md:text-base">🧠 Gemini 3 Pro 思考过程</h3>
+                             <h3 className="text-white font-bold text-sm md:text-base">🧠 AI 思考过程</h3>
                              <div className="flex items-center gap-2">
                                <p className="text-xs text-slate-400 font-mono mt-0.5">深度推理分析</p>
                                <span className="text-[10px] bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-1.5 rounded font-mono">thinking_level: high</span>
@@ -732,7 +732,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
                         <div className="flex items-start gap-2 text-sm text-slate-400 bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
                            <MousePointerClick className="w-4 h-4 text-brand-400 mt-0.5 flex-shrink-0" />
                            <p>
-                             Gemini 已将具体反馈标注在您的照片上。 
+                             AI 已将具体反馈标注在您的照片上。 
                              <strong className="text-brand-400 ml-1">将鼠标悬停在左侧的彩色框上</strong> 查看每个问题的详细提示。
                            </p>
                         </div>

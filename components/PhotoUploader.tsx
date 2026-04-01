@@ -109,7 +109,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
                 <Loader2 className="w-16 h-16 text-brand-400 animate-spin relative z-10" />
               </div>
               
-              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">🧠 Gemini 3 Pro 思考中...</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-white mb-2">🧠 AI Vision 分析中...</h3>
               
               {/* Simulated Thinking Console */}
               <div className="w-full mt-6 bg-slate-950/80 rounded-xl border border-slate-800 p-4 font-mono text-sm text-left shadow-inner">
