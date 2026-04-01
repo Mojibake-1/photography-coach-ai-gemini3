@@ -91,10 +91,10 @@ export interface PhotoAnalysis {
   thinking?: ThinkingProcess;
 }
 
-// App states for UI flow
 export enum AppState {
   IDLE = 'IDLE',           // Waiting for upload
   ANALYZING = 'ANALYZING', // Processing with Gemini
+  MANUAL_MODE = 'MANUAL_MODE', // Manual input mode
   RESULTS = 'RESULTS',     // Showing analysis
   GENERATING = 'GENERATING', // Creating corrected image
   ERROR = 'ERROR'          // Something went wrong

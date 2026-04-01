@@ -4,7 +4,7 @@ import { Camera, Sparkles, Cpu, Target, Coins, ArrowRight, PlayCircle, Zap, Imag
 import PhotoUploader from './components/PhotoUploader';
 import AnalysisResults, { TabId } from './components/AnalysisResults';
 import { PresentationSlides } from './components/PresentationSlides';
-import { analyzeImage } from './services/geminiService';
+import { analyzeImage, getAnalysisPromptTemplate } from './services/geminiService';
 import { PhotoAnalysis, AppState, SessionCostMetric, MentorChatState } from './types';
 
 // Floating badge component for the header
@@ -48,6 +48,7 @@ function App() {
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [manualJson, setManualJson] = useState("");
   const [showSlides, setShowSlides] = useState(false);
   const [initialSlide, setInitialSlide] = useState(1);
   
@@ -64,58 +65,9 @@ function App() {
   // We rely on the service layer to use shared credentials or fail gracefully with a specific error code.
 
   const handleImageSelected = async (base64: string, mimeType: string) => {
-    // We proceed directly to analysis. 
-    // The Gemini Service will attempt to fetch a shared key from the environment.
-    // If that fails, the error block below will handle the UI state.
-    
+    // TEMPORARY MANUAL WORKFLOW: Bypass API call completely.
     setCurrentImage(base64);
-    setAppState(AppState.ANALYZING);
-    setError(null);
-    // Reset tabs and chat for new analysis
-    setActiveResultTab('overview');
-    setMentorChatState({ messages: [], isLoading: false });
-
-    try {
-      const result = await analyzeImage(base64, mimeType);
-      setAnalysis(result);
-
-      // Update session history if token usage data exists
-      if (result.tokenUsage) {
-        setSessionHistory(prev => {
-          const newMetric: SessionCostMetric = {
-            id: prev.length + 1,
-            timestamp: Date.now(),
-            realCost: result.tokenUsage!.realCost,
-            projectedCost: result.tokenUsage!.projectedCostWithCache,
-            potentialSavings: result.tokenUsage!.projectedSavings,
-            // These aren't used in the main history view but good to keep
-            cachedTokens: result.tokenUsage!.realCachedTokens,
-            newTokens: result.tokenUsage!.realNewTokens
-          };
-          return [...prev, newMetric];
-        });
-      }
-
-      setAppState(AppState.RESULTS);
-    } catch (err: any) {
-      console.error(err);
-      
-      const errorMessage = (err.message || err.toString()).toLowerCase();
-      // Check for common permission/key errors (403 Forbidden, 404 Not Found for model)
-      if (
-        errorMessage.includes("permission denied") || 
-        errorMessage.includes("403") || 
-        errorMessage.includes("404") || 
-        errorMessage.includes("requested entity was not found") ||
-        errorMessage.includes("api key") ||
-        errorMessage.includes("quota")
-      ) {
-        setError("API_KEY_ERROR"); 
-      } else {
-        setError("Failed to analyze image. Please try again. " + (err.message || ""));
-      }
-      setAppState(AppState.ERROR);
-    }
+    setAppState(AppState.MANUAL_MODE);
   };
 
   const handleSampleClick = async (url: string) => {
@@ -296,6 +248,85 @@ function App() {
           </div>
         )}
 
+        {appState === AppState.MANUAL_MODE && (
+          <div className="flex flex-col items-center justify-center min-h-[70vh] space-y-6 max-w-2xl mx-auto animate-fadeIn px-4">
+             <div className="w-20 h-20 bg-brand-500/20 rounded-full flex items-center justify-center mb-4">
+                <Target className="w-10 h-10 text-brand-400" />
+             </div>
+             
+             <h2 className="text-2xl md:text-3xl font-bold text-white text-center">手动获取分析结果</h2>
+             <div className="text-slate-400 text-center mb-4 space-y-2 text-sm md:text-base bg-slate-800/50 p-6 rounded-xl border border-slate-700">
+               <p>由于 API 限制，请暂时使用以下流程获取分析：</p>
+               <ol className="text-left list-decimal list-inside space-y-2 mt-4">
+                 <li>点击下方按钮 <b>复制 Prompt（提示词）</b>。</li>
+                 <li>前往 <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">Google AI Studio</a> 网页版。</li>
+                 <li>上传您刚刚选择的图片，并发送已复制的 Prompt。</li>
+                 <li>将模型返回的 <b>完整的 JSON 代码</b> 复制下来。</li>
+                 <li>粘贴到下方的文本框中。</li>
+               </ol>
+             </div>
+
+             <button 
+               onClick={async () => {
+                 const prompt = getAnalysisPromptTemplate();
+                 await navigator.clipboard.writeText(prompt);
+                 alert("Prompt 已成功复制！请前往网页版粘贴。");
+               }}
+               className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center gap-2 border border-slate-700 shadow-xl transition-all font-semibold"
+             >
+               <kbd className="font-mono text-xs bg-slate-900 border border-slate-700 px-2 py-1 rounded">点击复制 Prompt</kbd>
+             </button>
+
+             <div className="w-full mt-8 bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-inner">
+                <label className="text-sm font-semibold text-brand-400 mb-2 block">在这里粘贴返回的 JSON 数据：</label>
+                <textarea 
+                  className="w-full h-40 bg-slate-950 border border-slate-700 rounded-md p-3 text-xs font-mono text-slate-300 resize-y focus:outline-none focus:border-brand-500"
+                  placeholder='{ "scores": { "composition": 8, ... } }'
+                  value={manualJson}
+                  onChange={(e) => setManualJson(e.target.value)}
+                />
+                
+                <div className="flex gap-4 mt-4">
+                  <button 
+                    onClick={() => {
+                      try {
+                        let jsonStr = manualJson.trim();
+                        if (jsonStr.startsWith('\`\`\`')) {
+                          jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+                        }
+                        const parsed = JSON.parse(jsonStr);
+                        // Add mock token usage for the UI to be happy
+                        parsed.tokenUsage = {
+                          realCachedTokens: 0,
+                          realNewTokens: 2500,
+                          totalTokens: 3000,
+                          realCost: 0,
+                          projectedCachedTokens: Math.floor(Math.random() * 5000),
+                          projectedCostWithCache: 0,
+                          projectedSavings: 0
+                        };
+                        setAnalysis(parsed);
+                        setAppState(AppState.RESULTS);
+                        setActiveResultTab('overview');
+                      } catch (e: any) {
+                        alert("解析失败，JSON 格式错误，请检查！\n" + e.message);
+                      }
+                    }}
+                    className="flex-1 px-4 py-3 bg-brand-600 hover:bg-brand-500 text-white rounded-md transition-colors text-sm font-bold shadow-lg"
+                  >
+                    生成分析视图
+                  </button>
+                  <button 
+                    onClick={handleReset}
+                    className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white rounded-md transition-colors text-sm font-medium"
+                  >
+                    取消
+                  </button>
+                </div>
+             </div>
+          </div>
+        )}
+
         {appState === AppState.ANALYZING && (
            <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-8 animate-pulse">
               <div className="w-full max-w-2xl mx-auto">
@@ -361,13 +392,44 @@ function App() {
                   <div className="w-16 h-16 bg-rose-500/20 rounded-full flex items-center justify-center mx-auto mb-4">
                      <Target className="w-8 h-8 text-rose-500" />
                   </div>
-                  <h3 className="text-xl font-bold text-white mb-2">分析失败</h3>
-                  <p className="text-slate-400 mb-6 text-sm">{error}</p>
+                  <h3 className="text-xl font-bold text-white mb-2">分析失败 (API 错误)</h3>
+                  <p className="text-slate-400 mb-6 text-sm break-all max-h-32 overflow-y-auto">{error}</p>
+                  
+                  <div className="w-full text-left bg-slate-900 rounded-lg p-3 mb-6 shadow-inner">
+                    <label className="text-xs text-brand-400 font-bold mb-2 block flex items-center gap-2">
+                       <Zap className="w-3 h-3" /> 手动恢复模式
+                    </label>
+                    <textarea 
+                      className="w-full h-32 bg-slate-950 border border-slate-700 rounded-md p-2 text-xs font-mono text-slate-300 resize-y focus:outline-none focus:border-brand-500"
+                      placeholder="如果你在其他浏览器获得了 JSON 结果，可以在这里粘贴..."
+                      value={manualJson}
+                      onChange={(e) => setManualJson(e.target.value)}
+                    />
+                    <button 
+                      onClick={() => {
+                        try {
+                          let jsonStr = manualJson.trim();
+                          if (jsonStr.startsWith('\`\`\`')) {
+                            jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+                          }
+                          const parsed = JSON.parse(jsonStr);
+                          setAnalysis(parsed);
+                          setAppState(AppState.RESULTS);
+                        } catch (e: any) {
+                          alert("JSON 格式错误，请检查内容是否完整！\n" + e.message);
+                        }
+                      }}
+                      className="w-full mt-2 px-4 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-md transition-colors text-sm font-bold shadow-lg"
+                    >
+                      使用此 JSON 渲染结果
+                    </button>
+                  </div>
+
                   <button 
                     onClick={handleReset}
-                    className="px-8 py-3 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors font-medium"
+                    className="w-full px-8 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 rounded-lg transition-colors font-medium"
                   >
-                    重试
+                    返回上传页重试
                   </button>
                 </>
               )}

@@ -1,21 +1,16 @@
-// Gemini 3 Pro integration for professional photography analysis
+// Photography Coach AI - Gemini Service
+// Supports both Google GenAI SDK and OpenAI-compatible proxy APIs
 import { GoogleGenAI, Type } from '@google/genai';
 import { PhotoAnalysis, BoundingBox, TokenUsage, MentorMessage, ThinkingProcess } from '../types';
 
-// Pricing constants for Gemini 3 Pro (Estimated per 1M tokens)
-const PRICING = {
-  flash: {
-    input: 0.075 / 1000000,
-    output: 0.30 / 1000000,
-    cachedInput: 0.01875 / 1000000 
-  },
-  // Pricing for Gemini 3 Pro
-  pro: {
-    input: 3.50 / 1000000,
-    output: 10.50 / 1000000,
-    cachedInput: 0.875 / 1000000
-  }
-};
+// Config
+const API_KEY = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+const BASE_URL = process.env.GEMINI_BASE_URL || '';
+const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
+const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.0-flash';
+
+// Use OpenAI-compatible mode when a custom base URL is set
+const USE_PROXY = !!BASE_URL;
 
 // Core photography principles
 const PHOTOGRAPHY_PRINCIPLES = `
@@ -59,44 +54,59 @@ const cleanBase64 = (dataUrl: string) => {
   return dataUrl;
 };
 
-// Helper to check for permission/access errors
-const isPermissionError = (error: any) => {
-  const msg = (error.message || error.toString()).toLowerCase();
-  return (
-    msg.includes("permission denied") || 
-    msg.includes("403") || 
-    msg.includes("404") || 
-    msg.includes("not found") ||
-    msg.includes("billing") ||
-    error.status === 403 ||
-    error.status === 404
-  );
-};
-
-// Helper to get the AI Client using custom API endpoint
-const getGenAIClient = async (): Promise<GoogleGenAI> => {
-  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
-  const baseUrl = process.env.GEMINI_BASE_URL || '';
-  
-  const opts: any = { apiKey };
-  if (baseUrl) {
-    opts.httpOptions = { baseUrl };
+// Helper to get mime type from data URL
+const getMimeFromDataUrl = (dataUrl: string) => {
+  if (dataUrl.includes(';base64,')) {
+    return dataUrl.split(';base64,')[0].split(':')[1] || 'image/jpeg';
   }
-  return new GoogleGenAI(opts);
+  return 'image/jpeg';
 };
 
-// Retry logic for API calls
+// ========================================
+// OpenAI-compatible proxy API client
+// ========================================
+async function callProxyAPI(messages: any[], model?: string): Promise<string> {
+  const url = `${BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${API_KEY}`,
+    },
+    body: JSON.stringify({
+      model: model || MODEL,
+      messages,
+      temperature: 0.7,
+      max_tokens: 4096,
+    }),
+  });
+
+  if (!response.ok) {
+    const errorBody = await response.text();
+    throw new Error(`API Error ${response.status}: ${errorBody}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ========================================
+// Google GenAI SDK client (direct Google API)
+// ========================================
+const getGenAIClient = (): GoogleGenAI => {
+  return new GoogleGenAI({ apiKey: API_KEY });
+};
+
+// ========================================
+// Retry logic
+// ========================================
 async function withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 1000): Promise<T> {
   try {
     return await fn();
   } catch (error: any) {
-    // Don't retry permission errors, fail fast so UI can handle it
-    if (isPermissionError(error)) {
-        throw error;
-    }
-    
-    if (retries > 0 && (error.status === 500 || error.status === 503 || error.message?.includes('500') || error.code === 500)) {
-      console.warn(`API Error ${error.status || '500'}. Retrying in ${delay}ms... (${retries} retries left)`);
+    if (retries > 0 && (error.status === 500 || error.status === 503 || error.message?.includes('500'))) {
+      console.warn(`API Error. Retrying in ${delay}ms... (${retries} retries left)`);
       await new Promise(resolve => setTimeout(resolve, delay));
       return withRetry(fn, retries - 1, delay * 2);
     }
@@ -104,213 +114,225 @@ async function withRetry<T>(fn: () => Promise<T>, retries = 2, delay = 1000): Pr
   }
 }
 
-export const analyzeImage = async (base64Image: string, mimeType: string): Promise<PhotoAnalysis> => {
-  // Use the dynamic client helper
-  const ai = await getGenAIClient();
-  const cleanedImage = cleanBase64(base64Image);
+// ========================================
+// JSON Schema for analysis (used in prompts for proxy mode)
+// ========================================
+const ANALYSIS_SCHEMA_PROMPT = `
+You MUST respond with valid JSON only, no markdown, no code fences. Use the following JSON structure exactly:
+{
+  "scores": {
+    "composition": <number 1-10>,
+    "lighting": <number 1-10>,
+    "creativity": <number 1-10>,
+    "technique": <number 1-10>,
+    "subjectImpact": <number 1-10>
+  },
+  "critique": {
+    "composition": "<string>",
+    "lighting": "<string>",
+    "technique": "<string>",
+    "overall": "<string>"
+  },
+  "strengths": ["<string>", ...],
+  "improvements": ["<string>", ...],
+  "learningPath": ["<string>", "<string>", "<string>"],
+  "settingsEstimate": {
+    "focalLength": "<string>",
+    "aperture": "<string>",
+    "shutterSpeed": "<string>",
+    "iso": "<string>"
+  },
+  "boundingBoxes": [
+    {
+      "type": "<composition|lighting|focus|exposure|color>",
+      "severity": "<critical|moderate|minor>",
+      "x": <number 0-100 percentage>,
+      "y": <number 0-100 percentage>,
+      "width": <number 0-100 percentage>,
+      "height": <number 0-100 percentage>,
+      "description": "<description of the FLAW>",
+      "suggestion": "<how to FIX this>"
+    }
+  ],
+  "thinking": {
+    "observations": ["<string>", ...],
+    "reasoningSteps": ["<string>", ...],
+    "priorityFixes": ["<string>", ...]
+  }
+}
+`;
 
-  const generateContent = async () => {
-    return await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro
-      contents: {
+export const getAnalysisPromptTemplate = () => `Analyze this photograph based on the following principles:\n${PHOTOGRAPHY_PRINCIPLES}\n\nProvide a detailed analysis in JSON format.
+  
+IMPORTANT INSTRUCTIONS FOR BOUNDING BOXES:
+1. Bounding boxes must ONLY identify specific flaws, errors, or distractions.
+2. Do NOT create bounding boxes for positive elements or strengths.
+3. 'severity' indicates the negative impact of the flaw: critical, moderate, or minor.
+4. Provide coordinates as percentages (0-100) of the image dimensions.
+
+THINKING PROCESS:
+Document your analysis methodology with:
+- 3-6 key observations you noticed first
+- 3-5 reasoning steps explaining your evaluation approach
+- 3-5 priority fixes ranked by impact
+
+${ANALYSIS_SCHEMA_PROMPT}`;
+
+// ========================================
+// Main: Analyze Image
+// ========================================
+export const analyzeImage = async (base64Image: string, mimeType: string): Promise<PhotoAnalysis> => {
+  const cleanedImage = cleanBase64(base64Image);
+  const fullDataUrl = base64Image.includes('data:') ? base64Image : `data:${mimeType};base64,${cleanedImage}`;
+  
+  const analysisPrompt = getAnalysisPromptTemplate();
+
+  let resultText: string;
+
+  if (USE_PROXY) {
+    // OpenAI-compatible proxy mode
+    resultText = await withRetry(() => callProxyAPI([
+      {
         role: 'user',
-        parts: [
-          {
-            inlineData: {
-              data: cleanedImage,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: `Analyze this photograph based on the following principles:\n${PHOTOGRAPHY_PRINCIPLES}\n\nProvide a detailed analysis in JSON format according to the schema.
-            
-            IMPORTANT INSTRUCTIONS FOR BOUNDING BOXES:
-            1. Bounding boxes must ONLY identify specific flaws, errors, or distractions (e.g., "distracting trash can", "overexposed sky", "soft focus on eyes").
-            2. Do NOT create bounding boxes for positive elements or strengths.
-            3. 'severity' indicates the negative impact of the flaw:
-               - 'critical': A major error that ruins the photo.
-               - 'moderate': A noticeable distraction.
-               - 'minor': A small detail to polish.
-            4. Provide coordinates as percentages (0-100) of the image dimensions.
-            
-            THINKING PROCESS:
-            Document your analysis methodology with:
-            - 3-6 key observations you noticed first
-            - 3-5 reasoning steps explaining your evaluation approach
-            - 3-5 priority fixes ranked by impact`,
-          },
+        content: [
+          { type: 'image_url', image_url: { url: fullDataUrl } },
+          { type: 'text', text: analysisPrompt },
         ],
       },
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            scores: {
-              type: Type.OBJECT,
-              properties: {
-                composition: { type: Type.NUMBER },
-                lighting: { type: Type.NUMBER },
-                creativity: { type: Type.NUMBER },
-                technique: { type: Type.NUMBER },
-                subjectImpact: { type: Type.NUMBER },
-              },
-              required: ['composition', 'lighting', 'creativity', 'technique', 'subjectImpact'],
-            },
-            critique: {
-              type: Type.OBJECT,
-              properties: {
-                composition: { type: Type.STRING },
-                lighting: { type: Type.STRING },
-                technique: { type: Type.STRING },
-                overall: { type: Type.STRING },
-              },
-              required: ['composition', 'lighting', 'technique', 'overall'],
-            },
-            strengths: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            improvements: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-            },
-            learningPath: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING },
-              description: "3-5 specific photography skills or concepts the photographer should learn next to improve."
-            },
-            settingsEstimate: {
-              type: Type.OBJECT,
-              properties: {
-                focalLength: { type: Type.STRING },
-                aperture: { type: Type.STRING },
-                shutterSpeed: { type: Type.STRING },
-                iso: { type: Type.STRING },
-              },
-              required: ['focalLength', 'aperture', 'shutterSpeed', 'iso'],
-            },
-            boundingBoxes: {
-              type: Type.ARRAY,
-              items: {
+    ]));
+  } else {
+    // Direct Google GenAI SDK mode
+    const ai = getGenAIClient();
+    const response = await withRetry(async () => {
+      return await ai.models.generateContent({
+        model: MODEL,
+        contents: {
+          role: 'user',
+          parts: [
+            { inlineData: { data: cleanedImage, mimeType } },
+            { text: analysisPrompt },
+          ],
+        },
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              scores: {
                 type: Type.OBJECT,
                 properties: {
-                  type: { type: Type.STRING, enum: ['composition', 'lighting', 'focus', 'exposure', 'color'] },
-                  severity: { type: Type.STRING, enum: ['critical', 'moderate', 'minor'] },
-                  x: { type: Type.NUMBER, description: 'Percentage from left edge (0-100)' },
-                  y: { type: Type.NUMBER, description: 'Percentage from top edge (0-100)' },
-                  width: { type: Type.NUMBER, description: 'Percentage of image width (0-100)' },
-                  height: { type: Type.NUMBER, description: 'Percentage of image height (0-100)' },
-                  description: { type: Type.STRING, description: 'Description of the FLAW or ERROR' },
-                  suggestion: { type: Type.STRING, description: 'How to FIX this specific issue' },
+                  composition: { type: Type.NUMBER },
+                  lighting: { type: Type.NUMBER },
+                  creativity: { type: Type.NUMBER },
+                  technique: { type: Type.NUMBER },
+                  subjectImpact: { type: Type.NUMBER },
                 },
-                required: ['type', 'severity', 'x', 'y', 'width', 'height', 'description', 'suggestion'],
+                required: ['composition', 'lighting', 'creativity', 'technique', 'subjectImpact'],
+              },
+              critique: {
+                type: Type.OBJECT,
+                properties: {
+                  composition: { type: Type.STRING },
+                  lighting: { type: Type.STRING },
+                  technique: { type: Type.STRING },
+                  overall: { type: Type.STRING },
+                },
+                required: ['composition', 'lighting', 'technique', 'overall'],
+              },
+              strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
+              improvements: { type: Type.ARRAY, items: { type: Type.STRING } },
+              learningPath: { type: Type.ARRAY, items: { type: Type.STRING } },
+              settingsEstimate: {
+                type: Type.OBJECT,
+                properties: {
+                  focalLength: { type: Type.STRING },
+                  aperture: { type: Type.STRING },
+                  shutterSpeed: { type: Type.STRING },
+                  iso: { type: Type.STRING },
+                },
+                required: ['focalLength', 'aperture', 'shutterSpeed', 'iso'],
+              },
+              boundingBoxes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    type: { type: Type.STRING, enum: ['composition', 'lighting', 'focus', 'exposure', 'color'] },
+                    severity: { type: Type.STRING, enum: ['critical', 'moderate', 'minor'] },
+                    x: { type: Type.NUMBER },
+                    y: { type: Type.NUMBER },
+                    width: { type: Type.NUMBER },
+                    height: { type: Type.NUMBER },
+                    description: { type: Type.STRING },
+                    suggestion: { type: Type.STRING },
+                  },
+                  required: ['type', 'severity', 'x', 'y', 'width', 'height', 'description', 'suggestion'],
+                },
+              },
+              thinking: {
+                type: Type.OBJECT,
+                properties: {
+                  observations: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  reasoningSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  priorityFixes: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['observations', 'reasoningSteps', 'priorityFixes'],
               },
             },
-            thinking: {
-              type: Type.OBJECT,
-              description: "The AI's reasoning process",
-              properties: {
-                observations: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Initial visual observations" },
-                reasoningSteps: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Steps taken to evaluate the photo" },
-                priorityFixes: { type: Type.ARRAY, items: { type: Type.STRING }, description: "Ranked list of most important fixes" }
-              },
-              required: ['observations', 'reasoningSteps', 'priorityFixes']
-            }
+            required: ['scores', 'critique', 'strengths', 'improvements', 'learningPath', 'settingsEstimate', 'thinking'],
           },
-          required: ['scores', 'critique', 'strengths', 'improvements', 'learningPath', 'settingsEstimate', 'thinking'],
         },
-      },
+      });
     });
-  };
-
-  const response = await withRetry(() => generateContent());
-
-  if (!response.text) {
-    throw new Error('No response content from Gemini');
+    
+    if (!response.text) throw new Error('No response from Gemini');
+    resultText = response.text;
   }
 
-  const result = JSON.parse(response.text) as PhotoAnalysis;
-
-  // --- ECONOMICS CALCULATION ---
-  if (response.usageMetadata) {
-    const pricing = PRICING.pro; // Using Gemini 3 Pro Pricing
-
-    const rawPromptTokens = response.usageMetadata.promptTokenCount || 0;
-    const outputTokens = response.usageMetadata.candidatesTokenCount || 0;
-    const totalTokens = response.usageMetadata.totalTokenCount || 0;
-    
-    // 1. REAL METRICS
-    const realCachedTokens = response.usageMetadata.cachedContentTokenCount || 0;
-    const realNewTokens = Math.max(0, rawPromptTokens - realCachedTokens);
-    
-    const realCost = 
-      (realCachedTokens * pricing.cachedInput) +
-      (realNewTokens * pricing.input) +
-      (outputTokens * pricing.output);
-
-    // 2. PROJECTED METRICS (Simulation of High Scale + Caching)
-    const approximateStaticTokens = Math.floor(PHOTOGRAPHY_PRINCIPLES.length / 4);
-    const projectedCachedTokens = approximateStaticTokens; 
-    const projectedNewTokens = Math.max(0, rawPromptTokens - projectedCachedTokens);
-
-    const projectedCostWithCache = 
-      (projectedCachedTokens * pricing.cachedInput) +
-      (projectedNewTokens * pricing.input) +
-      (outputTokens * pricing.output);
-    
-    const projectedSavings = Math.max(0, realCost - projectedCostWithCache);
-
-    result.tokenUsage = {
-      realCachedTokens,
-      realNewTokens,
-      totalTokens,
-      realCost,
-      
-      projectedCachedTokens,
-      projectedCostWithCache,
-      projectedSavings
-    };
+  // Parse JSON - handle potential markdown code fences
+  let jsonStr = resultText.trim();
+  if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
   }
-
+  
+  const result = JSON.parse(jsonStr) as PhotoAnalysis;
   return result;
 };
 
+// ========================================
+// Generate Corrected Image
+// ========================================
 export const generateCorrectedImage = async (base64Image: string, mimeType: string, improvements: string[]): Promise<string> => {
-  // Use the dynamic client helper
-  const ai = await getGenAIClient();
+  if (USE_PROXY) {
+    throw new Error('当前 API 不支持图像生成功能。');
+  }
+  
+  const ai = getGenAIClient();
   const cleanedImage = cleanBase64(base64Image);
   const improvementsText = improvements.join(', ');
 
-  const generateImg = async () => {
+  const response = await withRetry(async () => {
     return await ai.models.generateContent({
-      model: process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-pro-preview', // COMPETITION REQUIREMENT: Gemini 3 Pro Image
+      model: IMAGE_MODEL,
       contents: {
         role: 'user',
         parts: [
-          {
-            inlineData: {
-              data: cleanedImage,
-              mimeType: mimeType,
-            },
-          },
-          {
-            text: `Act as a professional photo retoucher. Improve this image by addressing the following specific feedback: ${improvementsText}. Enhance technical qualities like lighting, exposure, and color balance while maintaining the original subject and composition. Return a high-quality photorealistic image.`,
-          },
+          { inlineData: { data: cleanedImage, mimeType } },
+          { text: `Act as a professional photo retoucher. Improve this image by addressing: ${improvementsText}. Enhance lighting, exposure, and color balance while maintaining the original subject. Return a high-quality photorealistic image.` },
         ],
       },
       config: {
-          imageConfig: {
-              imageSize: "1K", // Available in Pro
-          }
-      }
+        imageConfig: { imageSize: "1K" },
+      },
     });
-  };
+  });
 
-  return await extractImage(await withRetry(() => generateImg()));
+  return extractImage(response);
 };
 
-// NEW: Mentor Chat Feature
+// ========================================
+// Mentor Chat
+// ========================================
 export const askPhotographyMentor = async (
   base64Image: string,
   mimeType: string,
@@ -319,10 +341,9 @@ export const askPhotographyMentor = async (
   conversationHistory?: MentorMessage[]
 ): Promise<{ answer: string; thinking: ThinkingProcess }> => {
   
-  const ai = await getGenAIClient();
   const cleanedImage = cleanBase64(base64Image);
+  const fullDataUrl = base64Image.includes('data:') ? base64Image : `data:${mimeType};base64,${cleanedImage}`;
   
-  // Build context from previous analysis
   const contextSummary = `
 Photography Analysis Context:
 - Composition Score: ${previousAnalysis.scores.composition}/10
@@ -331,7 +352,6 @@ Photography Analysis Context:
 - Overall Critique: ${previousAnalysis.critique.overall}
   `;
   
-  // Build conversation history if exists
   const historyText = conversationHistory
     ? conversationHistory.map(m => `${m.role === 'user' ? 'User' : 'Mentor'}: ${m.content}`).join('\n')
     : '';
@@ -344,58 +364,73 @@ ${historyText ? `Previous conversation:\n${historyText}\n\n` : ''}
 
 The photographer now asks: "${userQuestion}"
 
-As their mentor, respond directly and personally. Reference the image and their specific scores/issues. Show your reasoning process.
+As their mentor, respond directly and personally. Reference the image and their specific scores/issues.
 
-Return response as JSON:
-{ "answer": "...", "thinking": { "observations": [...], "reasoningSteps": [...], "priorityFixes": [...] } }`;
+You MUST respond with valid JSON only, no markdown fences:
+{ "answer": "your detailed response here", "thinking": { "observations": ["..."], "reasoningSteps": ["..."], "priorityFixes": ["..."] } }`;
 
-  const generateMentorResponse = async () => {
-    return await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-3.1-pro-preview',
-      contents: {
+  let resultText: string;
+
+  if (USE_PROXY) {
+    resultText = await withRetry(() => callProxyAPI([
+      {
         role: 'user',
-        parts: [
-          { text: mentorPrompt },
-          {
-            inlineData: {
-              data: cleanedImage,
-              mimeType: mimeType,
-            },
-          },
+        content: [
+          { type: 'image_url', image_url: { url: fullDataUrl } },
+          { type: 'text', text: mentorPrompt },
         ],
       },
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            answer: { type: Type.STRING },
-            thinking: {
-              type: Type.OBJECT,
-              properties: {
-                observations: { type: Type.ARRAY, items: { type: Type.STRING } },
-                reasoningSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
-                priorityFixes: { type: Type.ARRAY, items: { type: Type.STRING } },
-              },
-              required: ['observations', 'reasoningSteps', 'priorityFixes'],
-            },
-          },
-          required: ['answer', 'thinking'],
+    ]));
+  } else {
+    const ai = getGenAIClient();
+    const response = await withRetry(async () => {
+      return await ai.models.generateContent({
+        model: MODEL,
+        contents: {
+          role: 'user',
+          parts: [
+            { text: mentorPrompt },
+            { inlineData: { data: cleanedImage, mimeType } },
+          ],
         },
-      },
+        config: {
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              answer: { type: Type.STRING },
+              thinking: {
+                type: Type.OBJECT,
+                properties: {
+                  observations: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  reasoningSteps: { type: Type.ARRAY, items: { type: Type.STRING } },
+                  priorityFixes: { type: Type.ARRAY, items: { type: Type.STRING } },
+                },
+                required: ['observations', 'reasoningSteps', 'priorityFixes'],
+              },
+            },
+            required: ['answer', 'thinking'],
+          },
+        },
+      });
     });
-  };
-
-  const response = await withRetry(() => generateMentorResponse());
-  
-  if (!response.text) {
-    throw new Error('No response content from Mentor');
+    
+    if (!response.text) throw new Error('No response from Mentor');
+    resultText = response.text;
   }
 
-  const result = JSON.parse(response.text);
+  let jsonStr = resultText.trim();
+  if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*/, '').replace(/\s*```$/, '');
+  }
+  
+  const result = JSON.parse(jsonStr);
   return { answer: result.answer, thinking: result.thinking };
 };
 
+// ========================================
+// Helper: Extract image from Google GenAI response
+// ========================================
 const extractImage = async (response: any): Promise<string> => {
   if (response.candidates && response.candidates[0].content.parts) {
     for (const part of response.candidates[0].content.parts) {
@@ -404,5 +439,5 @@ const extractImage = async (response: any): Promise<string> => {
       }
     }
   }
-  throw new Error('No image generated by Gemini');
+  throw new Error('No image generated');
 };
