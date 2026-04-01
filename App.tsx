@@ -74,7 +74,8 @@ function App() {
   const sampleUrls = {
     sample1: '/sample1_new.png',
     sample2: '/sample2_new.jpg',
-    sample3: '/sample3_new.jpg'
+    sample3: '/sample3_new.jpg',
+    sample4: '/sample4.jpg'
   };
 
   const handleSampleClick = async (sampleKey: keyof typeof sampleAnalyses) => {
@@ -218,14 +219,14 @@ function App() {
             <PhotoUploader onImageSelected={handleImageSelected} isAnalyzing={false} />
 
             {/* Sample Photos Section */}
-            <div className="w-full max-w-4xl pt-8">
+            <div className="w-full max-w-5xl pt-8">
               <div className="flex items-center gap-4 mb-6">
                 <div className="h-px bg-slate-800 flex-grow"></div>
                 <span className="text-sm font-semibold text-slate-500 uppercase tracking-widest">或试试示例照片</span>
                 <div className="h-px bg-slate-800 flex-grow"></div>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
                 <button 
                   onClick={() => handleSampleClick('sample1')}
                   className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
@@ -264,6 +265,20 @@ function App() {
                     <span className="text-xs font-bold text-brand-400 uppercase tracking-wider mb-1 block">为排版留白范例</span>
                      <h4 className="font-bold text-white flex items-center gap-2">
                        商业海报负空间 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
+                    </h4>
+                  </div>
+                </button>
+
+                 <button 
+                  onClick={() => handleSampleClick('sample4')}
+                  className="group relative h-40 md:h-48 rounded-2xl overflow-hidden border border-slate-700 shadow-lg hover:shadow-brand-500/20 transition-all duration-300 hover:scale-[1.02]"
+                >
+                  <img src="/sample4.jpg" alt="高转化视觉层级" className="absolute inset-0 w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                   <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-slate-900/20 to-transparent opacity-80 group-hover:opacity-60 transition-opacity"></div>
+                  <div className="absolute bottom-4 left-4 text-left">
+                    <span className="text-xs font-bold text-indigo-400 uppercase tracking-wider mb-1 block">A+副图场景解析</span>
+                     <h4 className="font-bold text-white flex items-center gap-2">
+                       高转化视觉层级 <ArrowRight className="w-4 h-4 opacity-0 -translate-x-2 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                     </h4>
                   </div>
                 </button>
