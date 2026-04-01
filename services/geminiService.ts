@@ -73,23 +73,16 @@ const isPermissionError = (error: any) => {
   );
 };
 
-// Helper to get the AI Client, preferring shared key if available
+// Helper to get the AI Client using custom API endpoint
 const getGenAIClient = async (): Promise<GoogleGenAI> => {
-  // 1. Check for shared API key (Competition / Published App Mode)
-  if (typeof window !== 'undefined' && (window as any).aistudio?.getSharedApiKey) {
-    try {
-      const apiKey = await (window as any).aistudio.getSharedApiKey();
-      if (apiKey) {
-        return new GoogleGenAI({ apiKey });
-      }
-    } catch (e) {
-      console.debug("Shared key retrieval failed, falling back to env var:", e);
-    }
+  const apiKey = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
+  const baseUrl = process.env.GEMINI_BASE_URL || '';
+  
+  const opts: any = { apiKey };
+  if (baseUrl) {
+    opts.httpOptions = { baseUrl };
   }
-
-  // 2. Fallback to process.env.API_KEY (Standard Mode)
-  // Even if this is empty, passing it might be handled by the SDK if it picks up defaults.
-  return new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  return new GoogleGenAI(opts);
 };
 
 // Retry logic for API calls
