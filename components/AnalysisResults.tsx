@@ -368,9 +368,8 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({
   const tabs = [
     { id: 'overview', label: '概览', icon: LayoutDashboard },
     { id: 'details', label: '详细分析', icon: ScanEye },
-    { id: 'mentor', label: '导师对话', icon: MessageCircle },
-    { id: 'enhance', label: 'AI 增强', icon: Wand2 },
-    { id: 'economics', label: '成本模拟', icon: Coins },
+    // { id: 'mentor', label: '导师对话', icon: MessageCircle },  // TODO: 待完善
+    // { id: 'enhance', label: 'AI 增强', icon: Wand2 },          // TODO: 待完善
   ];
 
   const totalPotentialSavings = sessionHistory.reduce((acc, curr) => acc + curr.potentialSavings, 0);

@@ -8,41 +8,6 @@ import { analyzeImage, getAnalysisPromptTemplate } from './services/geminiServic
 import { PhotoAnalysis, AppState, SessionCostMetric, MentorChatState } from './types';
 import { sampleAnalyses } from './data/sampleAnalyses';
 
-// Floating badge component for the header
-const SessionSavingsBadge: React.FC<{ 
-  sessionHistory: SessionCostMetric[]; 
-  onClick: () => void;
-}> = ({ sessionHistory, onClick }) => {
-  if (sessionHistory.length === 0) return null;
-
-  const totalPotentialSavings = sessionHistory.reduce((acc, curr) => acc + curr.potentialSavings, 0);
-  const totalRealCost = sessionHistory.reduce((acc, curr) => acc + curr.realCost, 0);
-  const savingsPercent = totalRealCost > 0 
-    ? (totalPotentialSavings / totalRealCost) * 100 
-    : 0;
-
-  return (
-    <button 
-      onClick={onClick}
-      className="flex items-center gap-2 px-2 md:px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20 transition-all cursor-pointer animate-pulse-slow group relative"
-      title="Click to view projected economics"
-    >
-      <Coins className="w-4 h-4" />
-      <span className="text-xs font-bold tracking-wide">
-        <span className="hidden md:inline">预估节省: </span>
-        ${totalPotentialSavings.toFixed(5)} 
-        <span className="hidden md:inline"> ({savingsPercent.toFixed(1)}%)</span>
-      </span>
-      {/* Tooltip for first-time users */}
-      {sessionHistory.length === 1 && (
-        <div className="absolute top-full right-0 mt-3 w-40 md:w-48 p-2 md:p-3 bg-slate-800 border border-slate-700 rounded-lg shadow-xl text-[10px] md:text-xs text-slate-300 text-center animate-fadeIn z-50">
-          <div className="absolute -top-1 right-4 md:right-8 w-2 h-2 bg-slate-800 border-l border-t border-slate-700 rotate-45"></div>
-          💡 规模模拟器已激活，查看节省了多少！
-        </div>
-      )}
-    </button>
-  );
-};
 
 function App() {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -56,10 +21,7 @@ function App() {
   // Lifted state for results tab to allow external control from header
   const [activeResultTab, setActiveResultTab] = useState<TabId>('overview');
   
-  // Session History State
-  const [sessionHistory, setSessionHistory] = useState<SessionCostMetric[]>([]);
-
-  // Lifted Mentor Chat State to persist across tab/device switches
+  // Mentor Chat State (disabled for now)
   const [mentorChatState, setMentorChatState] = useState<MentorChatState>({ messages: [], isLoading: false });
 
   // NOTE: We do not check for API keys on mount or interaction to avoid forcing login redirects.
@@ -214,17 +176,6 @@ function App() {
           </div>
           
           <div className="flex items-center gap-4 relative">
-             {/* Economics Badge */}
-             <SessionSavingsBadge 
-               sessionHistory={sessionHistory} 
-               onClick={() => {
-                 if (appState === AppState.RESULTS) {
-                   setActiveResultTab('economics');
-                   // Smooth scroll to top of content
-                   window.scrollTo({ top: 0, behavior: 'smooth' });
-                 }
-               }} 
-             />
           </div>
         </div>
       </header>
@@ -455,7 +406,7 @@ function App() {
             analysis={analysis} 
             imageSrc={currentImage} 
             onReset={handleReset} 
-            sessionHistory={sessionHistory}
+            sessionHistory={[]}
             activeTab={activeResultTab}
             onTabChange={setActiveResultTab}
             mentorChatState={mentorChatState}
