@@ -311,10 +311,10 @@ function App() {
              <h2 className="text-2xl md:text-3xl font-bold text-white text-center">手动获取分析结果</h2>
              <div className="text-slate-400 text-center mb-4 space-y-2 text-sm md:text-base bg-slate-800/50 p-6 rounded-xl border border-slate-700">
                <p>由于 API 限制，请暂时使用以下流程获取分析：</p>
-               <ol className="text-left list-decimal list-inside space-y-2 mt-4">
+               <ol className="text-left list-decimal list-inside space-y-2 mt-4 text-slate-300">
                  <li>点击下方按钮 <b>复制 Prompt（提示词）</b>。</li>
-                 <li>前往 <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline">Google AI Studio</a> 网页版。</li>
-                 <li>上传您刚刚选择的图片，并发送已复制的 Prompt。</li>
+                 <li>前往 <a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline font-bold">Gemini 官方网页版</a>，并<b>确保切换至 Gemini Advanced (Pro 模型)</b> 以获得最佳的视觉商业洞察。</li>
+                 <li>上传您刚刚选择的图片，粘贴并发送已复制的 Prompt。</li>
                  <li>将模型返回的 <b>完整的 JSON 代码</b> 复制下来。</li>
                  <li>粘贴到下方的文本框中。</li>
                </ol>
