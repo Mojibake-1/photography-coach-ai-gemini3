@@ -312,9 +312,9 @@ function App() {
              <div className="text-slate-400 text-center mb-4 space-y-2 text-sm md:text-base bg-slate-800/50 p-6 rounded-xl border border-slate-700">
                <p>由于 API 限制，请暂时使用以下流程获取分析：</p>
                <ol className="text-left list-decimal list-inside space-y-2 mt-4 text-slate-300">
-                 <li>点击下方按钮 <b>复制 Prompt（提示词）</b>。</li>
+                 <li>点击下方按钮 <b>复制提示词</b>。</li>
                  <li>前往 <a href="https://gemini.google.com/" target="_blank" rel="noopener noreferrer" className="text-brand-400 hover:underline font-bold">Gemini 官方网页版</a>，并<b>确保切换至 Gemini Advanced (Pro 模型)</b> 以获得最佳的视觉商业洞察。</li>
-                 <li>上传您刚刚选择的图片，粘贴并发送已复制的 Prompt。</li>
+                 <li>上传您刚刚选择的图片，粘贴并发送已复制的提示词。</li>
                  <li>将模型返回的 <b>完整的 JSON 代码</b> 复制下来。</li>
                  <li>粘贴到下方的文本框中。</li>
                </ol>
@@ -323,12 +323,24 @@ function App() {
              <button 
                onClick={async () => {
                  const prompt = getAnalysisPromptTemplate();
-                 await navigator.clipboard.writeText(prompt);
-                 alert("Prompt 已成功复制！请前往网页版粘贴。");
+                 try {
+                   await navigator.clipboard.writeText(prompt);
+                 } catch {
+                   // Clipboard API may fail in iframes — fallback to legacy method
+                   const ta = document.createElement('textarea');
+                   ta.value = prompt;
+                   ta.style.cssText = 'position:fixed;left:-9999px;top:-9999px';
+                   document.body.appendChild(ta);
+                   ta.select();
+                   document.execCommand('copy');
+                   document.body.removeChild(ta);
+                 }
+                 const btn = document.getElementById('copyPromptBtn');
+                 if (btn) { btn.textContent = '✓ 提示词已复制'; setTimeout(() => { btn.textContent = '点击复制提示词'; }, 2000); }
                }}
                className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-lg flex items-center justify-center gap-2 border border-slate-700 shadow-xl transition-all font-semibold"
              >
-               <kbd className="font-mono text-xs bg-slate-900 border border-slate-700 px-2 py-1 rounded">点击复制 Prompt</kbd>
+               <kbd id="copyPromptBtn" className="font-mono text-xs bg-slate-900 border border-slate-700 px-2 py-1 rounded">点击复制提示词</kbd>
              </button>
 
              <div className="w-full mt-8 bg-slate-900 rounded-xl p-4 border border-slate-800 shadow-inner">
