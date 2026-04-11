@@ -4,10 +4,27 @@ import { GoogleGenAI, Type } from '@google/genai';
 import { PhotoAnalysis, BoundingBox, TokenUsage, MentorMessage, ThinkingProcess } from '../types';
 
 // Config
-const API_KEY = process.env.API_KEY || process.env.GEMINI_API_KEY || '';
-const BASE_URL = process.env.GEMINI_BASE_URL || '';
-const MODEL = process.env.GEMINI_MODEL || 'gemini-2.0-flash';
-const IMAGE_MODEL = process.env.GEMINI_IMAGE_MODEL || 'gemini-2.0-flash';
+const API_KEY =
+  process.env.API_KEY ||
+  process.env.AI_KEY ||
+  process.env.AI_API_KEY ||
+  process.env.OPENAI_API_KEY ||
+  process.env.GEMINI_API_KEY ||
+  '';
+const BASE_URL =
+  process.env.AI_BASE_URL ||
+  process.env.OPENAI_BASE_URL ||
+  process.env.GEMINI_BASE_URL ||
+  '';
+const MODEL =
+  process.env.AI_MODEL ||
+  process.env.OPENAI_MODEL ||
+  process.env.GEMINI_MODEL ||
+  'gemini-2.0-flash';
+const IMAGE_MODEL =
+  process.env.AI_IMAGE_MODEL ||
+  process.env.GEMINI_IMAGE_MODEL ||
+  MODEL;
 
 // Use OpenAI-compatible mode when a custom base URL is set
 const USE_PROXY = !!BASE_URL;
@@ -59,7 +76,9 @@ const getMimeFromDataUrl = (dataUrl: string) => {
 // OpenAI-compatible proxy API client
 // ========================================
 async function callProxyAPI(messages: any[], model?: string): Promise<string> {
-  const url = `${BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
+  const url = BASE_URL.includes('/v1/chat/completions')
+    ? BASE_URL
+    : `${BASE_URL.replace(/\/$/, '')}/v1/chat/completions`;
   
   const response = await fetch(url, {
     method: 'POST',

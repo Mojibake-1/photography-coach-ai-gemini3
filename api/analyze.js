@@ -1,7 +1,7 @@
 // Vercel Serverless Function: /api/analyze
-// Proxies image analysis requests to GPT-5.4 Vision API with multi-node failover
+// Proxies image analysis requests to an env-configurable OpenAI-compatible primary with multi-node failover
 
-const NODES = [
+const LEGACY_NODES = [
   {
     name: "ice.v.ua",
     url: "https://ice.v.ua/v1/chat/completions",
@@ -27,6 +27,47 @@ const NODES = [
     key: "sk-HG7YvrZXvG1SljDuTQgvzs5gjBBHgHmhUjBXDkeEMCDg79Ny",
   },
 ];
+
+function normalizeChatUrl(value) {
+  if (!value) return "";
+  return value.includes("/v1/chat/completions")
+    ? value
+    : `${value.replace(/\/$/, "")}/v1/chat/completions`;
+}
+
+function buildNodes() {
+  const envUrl = normalizeChatUrl(
+    process.env.AI_URL ||
+      process.env.AI_API_URL ||
+      process.env.AI_BASE_URL ||
+      process.env.OPENAI_BASE_URL
+  );
+  const envKey =
+    process.env.AI_KEY ||
+    process.env.AI_API_KEY ||
+    process.env.OPENAI_API_KEY ||
+    "";
+  const envModel =
+    process.env.AI_MODEL ||
+    process.env.OPENAI_MODEL ||
+    "";
+
+  if (!envUrl || !envKey || !envModel) {
+    return LEGACY_NODES;
+  }
+
+  return [
+    {
+      name: "env-primary",
+      url: envUrl,
+      model: envModel,
+      key: envKey,
+    },
+    ...LEGACY_NODES,
+  ];
+}
+
+const NODES = buildNodes();
 
 const SYSTEM_PROMPT = `你是一位资深的亚马逊电商视觉设计总监与商业摄影顾问。你的职责是从"商业转化率（CVR）"的视角，对亚马逊产品套图、A+页面图片和品牌展示页素材进行专业级的视觉分析与诊断。
 
