@@ -7,18 +7,19 @@ interface PhotoUploaderProps {
 }
 
 // ── Image validation constants ──────────────────────────────────────
-const MAX_FILE_SIZE_MB = 10;
+// BMP & GIF are excluded — BMP is uncompressed (base64 bloat → API timeout),
+// and most vision APIs (OpenAI, Doubao) don't natively support either format.
+const MAX_FILE_SIZE_MB = 8;
 const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_BASE64_BODY_MB = 10;  // API payload ceiling (base64 ≈ file × 1.37)
 const MAX_PIXEL_DIM = 7680; // 8K resolution upper bound
-const MIN_PIXEL_DIM = 50;   // reject trivially small images
+const MIN_PIXEL_DIM = 14;   // Doubao minimum is 14px; keep aligned
 const ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
   'image/webp',
-  'image/gif',
-  'image/bmp',
 ];
-const ALLOWED_EXTENSIONS_LABEL = 'JPG、PNG、WEBP、GIF、BMP';
+const ALLOWED_EXTENSIONS_LABEL = 'JPG、PNG、WEBP';
 
 const formatFileSize = (bytes: number): string => {
   if (bytes < 1024) return `${bytes} B`;
@@ -109,6 +110,15 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
       return;
     }
 
+    // 2.5) Estimated Base64 payload check (base64 inflates ~37%)
+    const estimatedBase64MB = (file.size * 1.37) / (1024 * 1024);
+    if (estimatedBase64MB > MAX_BASE64_BODY_MB) {
+      setValidationError(
+        `图片编码后体积预计 ${estimatedBase64MB.toFixed(1)}MB，超过 API 传输上限（${MAX_BASE64_BODY_MB}MB）。请压缩或转为 JPEG 后重试。`
+      );
+      return;
+    }
+
     // 3) Zero-byte guard
     if (file.size === 0) {
       setValidationError('图片文件为空（0 字节），请重新选择。');
@@ -193,7 +203,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
           type="file"
           className={`absolute inset-0 w-full h-full opacity-0 z-20 ${isAnalyzing ? 'pointer-events-none' : 'cursor-pointer'}`}
           onChange={handleChange}
-          accept="image/jpeg,image/png,image/webp,image/gif,image/bmp"
+          accept="image/jpeg,image/png,image/webp"
           disabled={isAnalyzing}
         />
         
