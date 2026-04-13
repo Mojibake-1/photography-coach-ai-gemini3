@@ -1,82 +1,16 @@
 // Vercel Serverless Function: /api/analyze
-// Proxies image analysis requests to an env-configurable OpenAI-compatible primary with multi-node failover
+// Uses Muxing runtime config when embedded, otherwise falls back to env / legacy nodes.
 
-const LEGACY_NODES = [
-  {
-    name: "ice.v.ua",
-    url: "https://ice.v.ua/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-007db0ad23e3ab85918eb08de4187c0654bc2acb0988f71ac40add0017e98a37",
-  },
-  {
-    name: "sub.jlypx.de",
-    url: "https://sub.jlypx.de/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-f1250bccbce10ee23f410b4f94dd326afd56db4e768769c7fc6a4fd504e37022",
-  },
-  {
-    name: "newapi.linuxdo",
-    url: "https://newapi.linuxdo.edu.rs/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-dt49ElOb8YE8FsZN0TtgUuBtyN4cehJC74l0I6keH4hKC3bX",
-  },
-  {
-    name: "xingyungept",
-    url: "https://ai.xingyungept.cn/v1/chat/completions",
-    model: "gpt-5.2-Welfare",
-    key: "sk-HG7YvrZXvG1SljDuTQgvzs5gjBBHgHmhUjBXDkeEMCDg79Ny",
-  },
-];
-
-function normalizeChatUrl(value) {
-  if (!value) return "";
-  return value.includes("/v1/chat/completions")
-    ? value
-    : `${value.replace(/\/$/, "")}/v1/chat/completions`;
-}
-
-function buildNodes() {
-  const envUrl = normalizeChatUrl(
-    process.env.AI_URL ||
-      process.env.AI_API_URL ||
-      process.env.AI_BASE_URL ||
-      process.env.OPENAI_BASE_URL
-  );
-  const envKey =
-    process.env.AI_KEY ||
-    process.env.AI_API_KEY ||
-    process.env.OPENAI_API_KEY ||
-    "";
-  const envModel =
-    process.env.AI_MODEL ||
-    process.env.OPENAI_MODEL ||
-    "";
-
-  if (!envUrl || !envKey || !envModel) {
-    return LEGACY_NODES;
-  }
-
-  return [
-    {
-      name: "env-primary",
-      url: envUrl,
-      model: envModel,
-      key: envKey,
-    },
-    ...LEGACY_NODES,
-  ];
-}
-
-const NODES = buildNodes();
+const {
+  classifyApiError,
+  readRequestBody,
+  resolveRuntimeNodes,
+  setCommonHeaders,
+  setRouteHeaders,
+} = require("./_lib/runtimeConfig");
 
 const SYSTEM_PROMPT = `你是一位资深的亚马逊电商视觉设计总监与商业摄影顾问。你的职责是从"商业转化率（CVR）"的视角，对亚马逊产品套图、A+页面图片和品牌展示页素材进行专业级的视觉分析与诊断。
-
-核心评估原则：
-1. "为排版留白(Shooting for Layout)"是商业图片的核心优势，不是构图缺陷。
-2. 负空间(Negative Space)用于承载文案时，应被视为高级设计策略。
-3. 重点关注：光影合成真实感、材质还原度、视觉层级、移动端可读性、品牌信任度。
-4. 对业务逻辑错误（如图标功能与产品不符）保持极高敏感度，这直接导致差评和退货。
-
+核心评估原则：1. "为排版留白(Shooting for Layout)"是商业图片的核心优势，不是构图缺陷。2. 负空间(Negative Space)用于承载文案时，应被视为高级设计策略。3. 重点关注：光影合成真实感、材质还原度、视觉层级、移动端可读性、品牌信任度。4. 对业务逻辑错误（如图标功能与产品不符）保持极高敏感度，这直接导致差评和退货。
 评分维度（每项 1-10 分）：
 - composition: 构图与排版（负空间、视觉层级、A+适配性）
 - lighting: 光影与材质（高光/阴影、合成真实感、材质还原度）
@@ -121,7 +55,7 @@ const USER_PROMPT = `请以严格的JSON格式分析这张电商产品图片（�
 
 async function tryNode(node, imageBase64, mimeType) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 90000); // 90s timeout
+  const timeout = setTimeout(() => controller.abort(), 90000);
 
   try {
     const response = await fetch(node.url, {
@@ -157,12 +91,26 @@ async function tryNode(node, imageBase64, mimeType) {
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`HTTP ${response.status}: ${errorText.slice(0, 200)}`);
+      return {
+        success: false,
+        node: node.name,
+        model: node.model,
+        error: `HTTP ${response.status}: ${errorText.slice(0, 200)}`,
+        apiStatus: classifyApiError(response.status, errorText),
+      };
     }
 
     const data = await response.json();
     const content = data.choices?.[0]?.message?.content;
-    if (!content) throw new Error("Empty response content");
+    if (!content) {
+      return {
+        success: false,
+        node: node.name,
+        model: node.model,
+        error: "Empty response content",
+        apiStatus: "unhealthy",
+      };
+    }
 
     return {
       success: true,
@@ -170,22 +118,22 @@ async function tryNode(node, imageBase64, mimeType) {
       model: data.model || node.model,
       content,
       usage: data.usage || {},
+      apiStatus: "healthy",
     };
-  } catch (err) {
+  } catch (error) {
     clearTimeout(timeout);
     return {
       success: false,
       node: node.name,
-      error: err.message,
+      model: node.model,
+      error: error && error.message ? error.message : "Unknown request failure",
+      apiStatus: "unhealthy",
     };
   }
 }
 
 module.exports = async function handler(req, res) {
-  // CORS
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  setCommonHeaders(res);
 
   if (req.method === "OPTIONS") {
     return res.status(200).end();
@@ -196,63 +144,106 @@ module.exports = async function handler(req, res) {
   }
 
   try {
-    const { imageBase64, mimeType = "image/png" } = req.body;
+    const body = readRequestBody(req);
+    const { imageBase64, mimeType = "image/png" } = body;
+    const runtime = resolveRuntimeNodes(req);
+    const initialNode = runtime.nodes[0] || null;
 
     if (!imageBase64) {
-      return res.status(400).json({ error: "imageBase64 is required" });
+      setRouteHeaders(res, {
+        nodeName: initialNode && initialNode.name,
+        model: initialNode && initialNode.model,
+        configSource: runtime.source,
+        apiStatus: "healthy",
+      });
+      return res.status(400).json({
+        success: false,
+        error: "imageBase64 is required",
+        node: initialNode && initialNode.name,
+        model: initialNode && initialNode.model,
+        configSource: runtime.source,
+        apiStatus: "healthy",
+      });
     }
 
-    // Try nodes with failover
     const errors = [];
-    for (const node of NODES) {
+    for (const node of runtime.nodes) {
       console.log(`[analyze] Trying ${node.name} (${node.model})...`);
       const result = await tryNode(node, imageBase64, mimeType);
 
       if (result.success) {
-        console.log(`[analyze] Success via ${node.name} in ${result.usage?.total_tokens || '?'} tokens`);
-        
-        // Try to parse as JSON
-        let parsed;
+        console.log(
+          `[analyze] Success via ${node.name} in ${result.usage?.total_tokens || "?"} tokens`
+        );
+        setRouteHeaders(res, {
+          nodeName: result.node,
+          model: result.model,
+          configSource: runtime.source,
+          apiStatus: "healthy",
+        });
+
         try {
           let jsonStr = result.content.trim();
-          // Strip markdown code fences if present
           if (jsonStr.startsWith("```")) {
             jsonStr = jsonStr.replace(/^```(?:json)?\s*/, "").replace(/\s*```$/, "");
           }
-          parsed = JSON.parse(jsonStr);
-        } catch (parseErr) {
-          // Return raw content if JSON parsing fails
+
           return res.status(200).json({
             success: true,
             node: result.node,
             model: result.model,
+            configSource: runtime.source,
+            apiStatus: "healthy",
+            analysis: JSON.parse(jsonStr),
+            usage: result.usage,
+          });
+        } catch (parseErr) {
+          return res.status(200).json({
+            success: true,
+            node: result.node,
+            model: result.model,
+            configSource: runtime.source,
+            apiStatus: "healthy",
             raw: result.content,
             parseError: parseErr.message,
             usage: result.usage,
           });
         }
-
-        return res.status(200).json({
-          success: true,
-          node: result.node,
-          model: result.model,
-          analysis: parsed,
-          usage: result.usage,
-        });
       }
 
       console.log(`[analyze] ${node.name} failed: ${result.error}`);
-      errors.push({ node: result.node, error: result.error });
+      errors.push({
+        node: result.node,
+        model: result.model,
+        error: result.error,
+        apiStatus: result.apiStatus,
+      });
     }
 
-    // All nodes failed
+    const lastError = errors[errors.length - 1] || null;
+    setRouteHeaders(res, {
+      nodeName: lastError && lastError.node,
+      model: lastError && lastError.model,
+      configSource: runtime.source,
+      apiStatus: lastError && lastError.apiStatus ? lastError.apiStatus : "unhealthy",
+    });
+
     return res.status(502).json({
       success: false,
       error: "All API nodes failed",
+      node: lastError && lastError.node,
+      model: lastError && lastError.model,
+      configSource: runtime.source,
+      apiStatus: lastError && lastError.apiStatus ? lastError.apiStatus : "unhealthy",
       details: errors,
     });
-  } catch (err) {
-    console.error("[analyze] Unexpected error:", err);
-    return res.status(500).json({ error: err.message });
+  } catch (error) {
+    console.error("[analyze] Unexpected error:", error);
+    setRouteHeaders(res, { apiStatus: "unhealthy" });
+    return res.status(500).json({
+      success: false,
+      apiStatus: "unhealthy",
+      error: error && error.message ? error.message : "Unexpected analyze failure",
+    });
   }
-}
+};

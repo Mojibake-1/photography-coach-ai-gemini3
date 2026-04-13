@@ -4,7 +4,18 @@ import { Camera, Sparkles, Cpu, Target, Coins, ArrowRight, PlayCircle, Zap, Imag
 import PhotoUploader from './components/PhotoUploader';
 import AnalysisResults, { TabId } from './components/AnalysisResults';
 import { PresentationSlides } from './components/PresentationSlides';
-import { analyzeImage, getAnalysisPromptTemplate } from './services/geminiService';
+import { getAnalysisPromptTemplate } from './services/geminiService';
+import {
+  buildRuntimeConfigPayload,
+  getStoredMuxingApiConfig,
+  isRouteRequestLimitIssue,
+  normalizeRouteSource,
+  readRouteStatusMeta,
+  reportMuxingRouteStatus,
+  requestMuxingContext,
+  subscribeToMuxingContext,
+  type MuxingApiConfig,
+} from './services/muxingBridge';
 import { PhotoAnalysis, AppState, SessionCostMetric, MentorChatState } from './types';
 import { sampleAnalyses } from './data/sampleAnalyses';
 
@@ -17,6 +28,7 @@ function App() {
   const [manualJson, setManualJson] = useState("");
   const [showSlides, setShowSlides] = useState(false);
   const [initialSlide, setInitialSlide] = useState(1);
+  const [runtimeConfig, setRuntimeConfig] = useState<MuxingApiConfig | null>(() => getStoredMuxingApiConfig());
   
   // Lifted state for results tab to allow external control from header
   const [activeResultTab, setActiveResultTab] = useState<TabId>('overview');
@@ -29,6 +41,77 @@ function App() {
 
   const [analyzeStatus, setAnalyzeStatus] = useState<string>("");
 
+  useEffect(() => {
+    requestMuxingContext();
+    return subscribeToMuxingContext(
+      (config, meta) => {
+        setRuntimeConfig(config);
+        if (!meta.configured) {
+          reportMuxingRouteStatus({ configured: false, source: 'bridge' });
+        }
+      },
+      (theme) => {
+        document.documentElement.dataset.muxingTheme = theme;
+      }
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!runtimeConfig) return;
+
+    let cancelled = false;
+
+    const probeRoute = async () => {
+      reportMuxingRouteStatus({
+        configured: true,
+        nodeName: runtimeConfig.nodeName,
+        model: runtimeConfig.model,
+        source: 'bridge',
+        apiStatus: 'checking',
+      });
+
+      try {
+        const response = await fetch('/api/analyze/status', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ runtimeConfig: buildRuntimeConfigPayload(runtimeConfig) }),
+        });
+        const payload = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        const routeMeta = readRouteStatusMeta(response);
+        const message = (payload && (payload.error || payload.message)) || routeMeta.apiStatus || '';
+        const apiStatus =
+          response.ok || isRouteRequestLimitIssue(message) || payload?.apiStatus === 'healthy'
+            ? 'healthy'
+            : 'unhealthy';
+
+        reportMuxingRouteStatus({
+          configured: true,
+          nodeName: routeMeta.nodeName || payload?.node || runtimeConfig.nodeName,
+          model: routeMeta.model || payload?.model || runtimeConfig.model,
+          source: normalizeRouteSource(routeMeta.source || payload?.configSource || 'request'),
+          apiStatus,
+        });
+      } catch (error: any) {
+        if (cancelled) return;
+        reportMuxingRouteStatus({
+          configured: true,
+          nodeName: runtimeConfig.nodeName,
+          model: runtimeConfig.model,
+          source: 'bridge',
+          apiStatus: isRouteRequestLimitIssue(error?.message) ? 'healthy' : 'unhealthy',
+        });
+      }
+    };
+
+    probeRoute();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [runtimeConfig]);
+
   const handleImageSelected = async (base64: string, mimeType: string) => {
     setCurrentImage(base64);
     setAppState(AppState.ANALYZING);
@@ -40,17 +123,40 @@ function App() {
 
       setAnalyzeStatus("正在上传图片并分析（约 30-60 秒）...");
 
+      const requestBody: Record<string, unknown> = { imageBase64: rawBase64, mimeType };
+      const runtimePayload = buildRuntimeConfigPayload(runtimeConfig);
+      if (runtimePayload) {
+        requestBody.runtimeConfig = runtimePayload;
+      }
+
       const resp = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ imageBase64: rawBase64, mimeType }),
+        body: JSON.stringify(requestBody),
+      });
+      const data = await resp.json().catch(() => null);
+      const routeMeta = readRouteStatusMeta(resp);
+      const routeMessage = (data && (data.error || data.parseError || data.message)) || `API returned ${resp.status}`;
+      const routeStatus =
+        resp.ok || isRouteRequestLimitIssue(routeMessage) || data?.apiStatus === 'healthy'
+          ? 'healthy'
+          : 'unhealthy';
+
+      reportMuxingRouteStatus({
+        configured: Boolean(routeMeta.nodeName || routeMeta.model || runtimeConfig),
+        nodeName: routeMeta.nodeName || data?.node || runtimeConfig?.nodeName,
+        model: routeMeta.model || data?.model || runtimeConfig?.model,
+        source: normalizeRouteSource(routeMeta.source || data?.configSource || (runtimeConfig ? 'request' : 'fallback')),
+        apiStatus: routeStatus,
       });
 
       if (!resp.ok) {
-        throw new Error(`API returned ${resp.status}`);
+        throw new Error((data && data.error) || `API returned ${resp.status}`);
       }
 
-      const data = await resp.json();
+      if (!data) {
+        throw new Error('API returned invalid JSON');
+      }
 
       if (data.success && data.analysis) {
         const parsed = data.analysis;
@@ -77,6 +183,15 @@ function App() {
       throw new Error(data.error || 'Unknown API error');
     } catch (err: any) {
       console.warn('Auto-analyze failed, switching to manual mode:', err.message);
+      if (runtimeConfig) {
+        reportMuxingRouteStatus({
+          configured: true,
+          nodeName: runtimeConfig.nodeName,
+          model: runtimeConfig.model,
+          source: 'bridge',
+          apiStatus: isRouteRequestLimitIssue(err?.message) ? 'healthy' : 'unhealthy',
+        });
+      }
       setAnalyzeStatus("");
       setAppState(AppState.MANUAL_MODE);
     }
