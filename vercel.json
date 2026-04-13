@@ -3,6 +3,9 @@
     "api/analyze.js": {
       "memory": 1024,
       "maxDuration": 120
+    },
+    "api/analyze/status.js": {
+      "maxDuration": 30
     }
   },
   "rewrites": [
