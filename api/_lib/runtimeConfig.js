@@ -39,8 +39,16 @@ const REQUEST_LIMIT_PATTERNS = [
   /could not finish the message because max_tokens or model output limit was reached/i,
 ];
 
+const DEFAULT_PROXY_ORIGIN = "https://001027.xyz";
+const PROXY_RETRYABLE_STATUSES = new Set([408, 413, 500, 502, 503, 504]);
+
 function normalizeBaseUrl(value) {
   return String(value || "").trim().replace(/\/+$/, "");
+}
+
+function normalizeProxyOrigin(value) {
+  const normalized = normalizeBaseUrl(value);
+  return /^https?:\/\//i.test(normalized) ? normalized : "";
 }
 
 function normalizeChatUrl(value) {
@@ -52,6 +60,67 @@ function normalizeChatUrl(value) {
   if (/\/v1\/?$/i.test(normalized)) return normalized.replace(/\/+$/, "") + "/chat/completions";
   // Raw base URL (e.g. https://api.example.com), append full path
   return normalized + "/v1/chat/completions";
+}
+
+function isMuxingProxyDisabled() {
+  const raw = String(process.env.MUXING_PROXY_ENABLED || "").trim().toLowerCase();
+  return raw === "0" || raw === "false" || raw === "off" || raw === "disabled";
+}
+
+function resolveMuxingProxyOrigin() {
+  if (isMuxingProxyDisabled()) return "";
+  return normalizeProxyOrigin(
+    process.env.MUXING_PROXY_ORIGIN || process.env.AI_PROXY_ORIGIN || DEFAULT_PROXY_ORIGIN
+  );
+}
+
+function buildMuxingProxyUrl(targetUrl) {
+  const proxyOrigin = resolveMuxingProxyOrigin();
+  if (!proxyOrigin || !targetUrl) return "";
+  return `${proxyOrigin}/api/proxy?url=${encodeURIComponent(targetUrl)}`;
+}
+
+async function fetchRuntimeNode(node, options = {}) {
+  const requestOptions = {
+    ...options,
+    headers: { ...(options.headers || {}) },
+  };
+  const proxyUrl = buildMuxingProxyUrl(node && node.url);
+
+  if (!proxyUrl) {
+    return {
+      response: await fetch(node.url, requestOptions),
+      transport: "direct",
+    };
+  }
+
+  try {
+    const response = await fetch(proxyUrl, requestOptions);
+    if (!PROXY_RETRYABLE_STATUSES.has(response.status)) {
+      return {
+        response,
+        transport: "muxing-proxy",
+      };
+    }
+
+    const errorText = await response.text().catch(() => "");
+    console.warn(
+      `[runtimeConfig] Proxy fallback for ${node.name || node.url}: HTTP ${response.status}${
+        errorText ? ` ${errorText.slice(0, 160)}` : ""
+      }`
+    );
+  } catch (error) {
+    console.warn(
+      `[runtimeConfig] Proxy request failed for ${node.name || node.url}: ${
+        error && error.message ? error.message : String(error)
+      }`
+    );
+  }
+
+  return {
+    response: await fetch(node.url, requestOptions),
+    transport: "direct",
+  };
 }
 
 function parseJsonMaybe(value) {
@@ -216,6 +285,7 @@ function classifyApiError(status, message) {
 
 module.exports = {
   classifyApiError,
+  fetchRuntimeNode,
   isRequestLimitError,
   normalizeChatUrl,
   readRequestBody,

@@ -3,6 +3,7 @@
 
 const {
   classifyApiError,
+  fetchRuntimeNode,
   readRequestBody,
   resolveRuntimeNodes,
   setCommonHeaders,
@@ -58,7 +59,7 @@ async function tryNode(node, imageBase64, mimeType) {
   const timeout = setTimeout(() => controller.abort(), 90000);
 
   try {
-    const response = await fetch(node.url, {
+    const { response, transport } = await fetchRuntimeNode(node, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${node.key}`,
@@ -97,6 +98,7 @@ async function tryNode(node, imageBase64, mimeType) {
         model: node.model,
         error: `HTTP ${response.status}: ${errorText.slice(0, 200)}`,
         apiStatus: classifyApiError(response.status, errorText),
+        transport,
       };
     }
 
@@ -109,6 +111,7 @@ async function tryNode(node, imageBase64, mimeType) {
         model: node.model,
         error: "Empty response content",
         apiStatus: "unhealthy",
+        transport,
       };
     }
 
@@ -119,6 +122,7 @@ async function tryNode(node, imageBase64, mimeType) {
       content,
       usage: data.usage || {},
       apiStatus: "healthy",
+      transport,
     };
   } catch (error) {
     clearTimeout(timeout);
@@ -128,6 +132,7 @@ async function tryNode(node, imageBase64, mimeType) {
       model: node.model,
       error: error && error.message ? error.message : "Unknown request failure",
       apiStatus: "unhealthy",
+      transport: "direct",
     };
   }
 }
@@ -192,6 +197,7 @@ module.exports = async function handler(req, res) {
             success: true,
             node: result.node,
             model: result.model,
+            transport: result.transport,
             configSource: runtime.source,
             apiStatus: "healthy",
             analysis: JSON.parse(jsonStr),
@@ -202,6 +208,7 @@ module.exports = async function handler(req, res) {
             success: true,
             node: result.node,
             model: result.model,
+            transport: result.transport,
             configSource: runtime.source,
             apiStatus: "healthy",
             raw: result.content,
@@ -215,6 +222,7 @@ module.exports = async function handler(req, res) {
       errors.push({
         node: result.node,
         model: result.model,
+        transport: result.transport,
         error: result.error,
         apiStatus: result.apiStatus,
       });
@@ -233,6 +241,7 @@ module.exports = async function handler(req, res) {
       error: "All API nodes failed",
       node: lastError && lastError.node,
       model: lastError && lastError.model,
+      transport: lastError && lastError.transport,
       configSource: runtime.source,
       apiStatus: lastError && lastError.apiStatus ? lastError.apiStatus : "unhealthy",
       details: errors,

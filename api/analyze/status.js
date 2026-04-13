@@ -1,5 +1,6 @@
 const {
   classifyApiError,
+  fetchRuntimeNode,
   resolveRuntimeNodes,
   setCommonHeaders,
   setRouteHeaders,
@@ -10,7 +11,7 @@ async function probeNode(node) {
   const timeout = setTimeout(() => controller.abort(), 8000);
 
   try {
-    const response = await fetch(node.url, {
+    const { response, transport } = await fetchRuntimeNode(node, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${node.key}`,
@@ -37,6 +38,7 @@ async function probeNode(node) {
         nodeName: node.name,
         model: node.model,
         error: errorText,
+        transport,
       };
     }
 
@@ -55,6 +57,7 @@ async function probeNode(node) {
       apiStatus: "healthy",
       nodeName: node.name,
       model: returnedModel,
+      transport,
     };
   } catch (error) {
     clearTimeout(timeout);
@@ -64,6 +67,7 @@ async function probeNode(node) {
       nodeName: node.name,
       model: node.model,
       error: error && error.message ? error.message : "Probe failed",
+      transport: "direct",
     };
   }
 }
@@ -108,6 +112,7 @@ module.exports = async function handler(req, res) {
         configured: true,
         node: result.nodeName,
         model: result.model,
+        transport: result.transport,
         configSource: runtime.source,
         apiStatus: "healthy",
         probe: result.error ? "request-limited" : "ok",
@@ -129,6 +134,7 @@ module.exports = async function handler(req, res) {
     configured: true,
     node: lastAttempt && lastAttempt.nodeName,
     model: lastAttempt && lastAttempt.model,
+    transport: lastAttempt && lastAttempt.transport,
     configSource: runtime.source,
     apiStatus: lastAttempt && lastAttempt.apiStatus ? lastAttempt.apiStatus : "unhealthy",
     error: lastAttempt && lastAttempt.error ? lastAttempt.error : "All API nodes failed",
