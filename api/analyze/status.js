@@ -124,7 +124,7 @@ module.exports = async function handler(req, res) {
     apiStatus: lastAttempt && lastAttempt.apiStatus ? lastAttempt.apiStatus : "unhealthy",
   });
 
-  return res.status(502).json({
+  return res.status(400).json({
     success: false,
     configured: true,
     node: lastAttempt && lastAttempt.nodeName,

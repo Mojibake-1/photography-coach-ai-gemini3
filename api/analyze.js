@@ -228,7 +228,7 @@ module.exports = async function handler(req, res) {
       apiStatus: lastError && lastError.apiStatus ? lastError.apiStatus : "unhealthy",
     });
 
-    return res.status(502).json({
+    return res.status(400).json({
       success: false,
       error: "All API nodes failed",
       node: lastError && lastError.node,
