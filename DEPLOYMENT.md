@@ -145,6 +145,42 @@ docker-compose up -d
    - Configure DNS records
    - Enable HTTPS (automatic)
 
+### Muxing Bridge Deployment Notes
+
+This project is not just a standalone Vite app. In production it is also embedded under the Muxing main site and receives runtime API config from the parent shell.
+
+For embedded mode to be reliable, keep these assumptions true:
+
+1. **Tool routes must accept runtime config from the request**
+- The API handlers read `runtimeConfig`, `muxingConfig`, or `apiConfig` from the request body
+- They also support `x-muxing-*` headers as a fallback path
+
+2. **Tool routes should prefer the main-site proxy for upstream model calls**
+- Current implementation lives in [`api/_lib/runtimeConfig.js`](C:\Users\admin\Desktop\Photography-Coach-AI-Handover\api\_lib\runtimeConfig.js)
+- The helper prefers `https://001027.xyz/api/proxy`
+- This avoids upstream providers that challenge or block the tool deployment's own egress
+- You can override the origin with `MUXING_PROXY_ORIGIN` or `AI_PROXY_ORIGIN`
+- You can disable proxy usage with `MUXING_PROXY_ENABLED=0`
+
+3. **Do not put Chinese or other non-ASCII values into response headers**
+- Vercel/Node can reject them and fail the function
+- Keep user-facing names in JSON
+- Keep headers ASCII-safe only
+
+4. **When validating a node, compare transport before comparing tool health**
+- If one tool is green and another is red, verify whether both are using the same egress path
+- Look for `transport: "muxing-proxy"` in the route JSON when debugging
+
+### Recommended Environment Variables for Embedded Deployments
+
+```env
+# Optional but recommended when embedded under 001027 main site
+MUXING_PROXY_ORIGIN=https://001027.xyz
+
+# Leave enabled unless you intentionally need direct upstream fetch
+MUXING_PROXY_ENABLED=1
+```
+
 ### Auto-Deployment
 
 After initial setup, any push to main branch automatically deploys:
@@ -258,6 +294,12 @@ Before deploying to production:
 - [ ] API key is securely stored (never in git)
 - [ ] HTTPS/SSL is enabled
 - [ ] CORS is configured correctly
+
+### Muxing Integration
+- [ ] `/api/analyze/status` returns JSON successfully for a Chinese node name
+- [ ] `/api/analyze/status` returns the expected `configSource`
+- [ ] Problem nodes are checked for `transport: "muxing-proxy"` before judging availability
+- [ ] A plain text status probe is verified before testing image analysis
 - [ ] Sensitive logs are disabled
 - [ ] Rate limiting is implemented
 
