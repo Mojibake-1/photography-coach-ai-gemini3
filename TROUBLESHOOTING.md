@@ -100,49 +100,29 @@ import { analyzeImage } from '../geminiService'
 ### Issue: Same node works in Rufus, but Photography Coach shows API unavailable
 
 **Symptom:**
-- Main site binds the same node/model to both tools
-- `Rufus` shows green
-- Photography Coach shows `API unavailable`, `API checking`, or fails before real image analysis starts
+- Same node/model is bound in main site
+- `Rufus` is green, but Photography Coach is red or stuck on checking
 
-**What this usually means:**
-- This is often **not** a model-capability issue
-- The first thing to check is whether the tool is reaching the upstream through the same network path
-- A node can be healthy through one egress path and blocked through another
+**Meaning:**
+- Usually this is an **egress-path issue**, not a vision-capability issue
+- A node may pass on one backend path and be blocked on another
 
-**Real case we hit on 2026-04-13:**
-- `ark | bytedance-seed/dola-seed-2.0-pro | https://windhub.cc`
-- Rufus route stayed healthy
-- Photography Coach route failed even for a plain text probe
-- Root cause: Photography Coach was using its own Vercel serverless `fetch(node.url, ...)`, while the stable path was the main-site proxy
-- `windhub.cc` returned a Cloudflare challenge page to the tool-side serverless egress, so the tool looked "red" before image analysis even began
+**Current rule in this repo:**
+- [`api/_lib/runtimeConfig.js`](C:\Users\admin\Desktop\Photography-Coach-AI-Handover\api\_lib\runtimeConfig.js) prefers the main-site proxy: `https://001027.xyz/api/proxy`
+- Route JSON now includes `transport`
+- `transport: "muxing-proxy"` means the request used the stable proxy path
 
-**Current fix in this repo:**
-- `api/analyze/status.js` and `api/analyze.js` now call the shared transport helper in [`api/_lib/runtimeConfig.js`](C:\Users\admin\Desktop\Photography-Coach-AI-Handover\api\_lib\runtimeConfig.js)
-- That helper prefers `https://001027.xyz/api/proxy?url=...`
-- If the proxy itself returns a retryable transport error, the route falls back to direct fetch
-- Successful proxy use is returned in the JSON payload as `transport: "muxing-proxy"`
-
-**How to verify quickly:**
-
-1. Call the Photography Coach route directly:
+**Quick check:**
 ```bash
 curl -X POST "https://picture.001027.xyz/api/analyze/status" \
   -H "Content-Type: application/json" \
   -d '{"runtimeConfig":{"nodeName":"ark","baseUrl":"https://windhub.cc","apiKey":"***","model":"bytedance-seed/dola-seed-2.0-pro"}}'
 ```
 
-2. Check the response body:
-- If `transport` is `muxing-proxy`, the route is using the stable proxy path
-- If the error body is now a real upstream JSON error such as `401 invalid token`, the old "egress blocked by challenge page" problem is already removed
-- If the response still contains HTML like `Just a moment...`, you are still hitting an upstream challenge page somewhere in the chain
-
-3. Compare with Rufus only after confirming transport:
-- Do not assume a green Rufus result means the Photography Coach route is already testing the same path
-- The key question is whether both tools are using the same egress path, not just the same node config
-
-**Important debugging rule:**
-- `Rufus green + Photography Coach red` does **not** automatically mean "vision model unsupported"
-- If the Photography Coach plain text status probe fails first, debug transport and auth before debugging image capability
+- If `transport` is `muxing-proxy`, the old direct-egress challenge problem is removed
+- If you now see a clean `401` or `403`, treat it as a real key/auth issue
+- If you still see HTML like `Just a moment...`, you are still hitting an upstream challenge page
+- Debug plain text status first; do not jump to “model does not support images”
 
 ---
 
@@ -155,18 +135,12 @@ curl -X POST "https://picture.001027.xyz/api/analyze/status" \
 
 **Root cause:**
 - Node/Vercel response headers reject non-ASCII values
-- Earlier versions wrote the active node name directly into `X-Active-Node`
-- A Chinese node name could crash the function before the real API result was returned
+- Earlier versions wrote the node name directly into `X-Active-Node`
 
 **Current fix in this repo:**
 - [`api/_lib/runtimeConfig.js`](C:\Users\admin\Desktop\Photography-Coach-AI-Handover\api\_lib\runtimeConfig.js) now sanitizes route headers
-- Only ASCII-safe values are written to `X-Active-Node`, `X-Active-Model`, `X-Config-Source`, and `X-Api-Status`
-- The full human-readable node name still remains available in the JSON response body
-
-**How to verify quickly:**
-- Bind a node with a Chinese display name
-- Call `/api/analyze/status`
-- The route should return JSON instead of crashing, even if the upstream API itself is unhealthy
+- Only ASCII-safe values go into `X-Active-*` headers
+- Keep display names in JSON, not headers
 
 ---
 
@@ -207,9 +181,7 @@ curl -X GET "https://generativelanguage.googleapis.com/v1beta/models?key=YOUR_KE
    - Copy to `.env.local`
    - Restart app
 
-**Muxing-specific note:**
-- If a proxied route now returns a clean upstream `401` or `403` JSON error, treat that as a real credential problem
-- Before 2026-04-13, some node failures were masked by egress-block pages; after the proxy-aware transport fix, auth errors are more trustworthy
+**Muxing-specific note:** After the proxy-aware transport fix, a clean upstream `401` or `403` is usually a real credential problem.
 
 ---
 
