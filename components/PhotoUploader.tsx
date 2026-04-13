@@ -1,10 +1,30 @@
 import React, { useCallback, useState, useEffect } from 'react';
-import { Upload, Image as ImageIcon, Loader2, ScanLine, Aperture, ArrowUp, Brain, Zap, Target, Eye, Sparkles } from 'lucide-react';
+import { Upload, Image as ImageIcon, Loader2, ScanLine, Aperture, ArrowUp, Brain, Zap, Target, Eye, Sparkles, AlertTriangle, X } from 'lucide-react';
 
 interface PhotoUploaderProps {
   onImageSelected: (base64: string, mimeType: string) => void;
   isAnalyzing: boolean;
 }
+
+// ── Image validation constants ──────────────────────────────────────
+const MAX_FILE_SIZE_MB = 10;
+const MAX_FILE_SIZE_BYTES = MAX_FILE_SIZE_MB * 1024 * 1024;
+const MAX_PIXEL_DIM = 7680; // 8K resolution upper bound
+const MIN_PIXEL_DIM = 50;   // reject trivially small images
+const ALLOWED_MIME_TYPES = [
+  'image/jpeg',
+  'image/png',
+  'image/webp',
+  'image/gif',
+  'image/bmp',
+];
+const ALLOWED_EXTENSIONS_LABEL = 'JPG、PNG、WEBP、GIF、BMP';
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+};
 
 const THINKING_STEPS = [
   { text: "正在分析构图和取景...", icon: Brain },
@@ -17,6 +37,15 @@ const THINKING_STEPS = [
 const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyzing }) => {
   const [dragActive, setDragActive] = useState(false);
   const [currentThinkingStep, setCurrentThinkingStep] = useState(0);
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Auto-dismiss validation error after 8 seconds
+  useEffect(() => {
+    if (validationError) {
+      const timer = setTimeout(() => setValidationError(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [validationError]);
 
   // Simulated thinking process timer
   useEffect(() => {
@@ -60,21 +89,93 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
     }
   };
 
+  // ── Validation & processing pipeline ─────────────────────────────
   const processFile = (file: File) => {
-    if (!file.type.startsWith('image/')) {
-      alert("请上传图片文件");
+    setValidationError(null);
+
+    // 1) MIME type check
+    if (!ALLOWED_MIME_TYPES.includes(file.type)) {
+      setValidationError(
+        `不支持的图片格式「${file.type || '未知'}」。仅支持 ${ALLOWED_EXTENSIONS_LABEL} 格式。`
+      );
       return;
     }
+
+    // 2) File size check
+    if (file.size > MAX_FILE_SIZE_BYTES) {
+      setValidationError(
+        `图片体积过大（${formatFileSize(file.size)}），请上传不超过 ${MAX_FILE_SIZE_MB}MB 的图片。`
+      );
+      return;
+    }
+
+    // 3) Zero-byte guard
+    if (file.size === 0) {
+      setValidationError('图片文件为空（0 字节），请重新选择。');
+      return;
+    }
+
+    // 4) Read file & validate pixel dimensions via Image element
     const reader = new FileReader();
+    reader.onerror = () => {
+      setValidationError('图片读取失败，请检查文件是否损坏后重试。');
+    };
     reader.onloadend = () => {
       const result = reader.result as string;
-      onImageSelected(result, file.type);
+
+      // Create an off-screen Image to inspect dimensions
+      const img = new window.Image();
+      img.onload = () => {
+        const { naturalWidth: w, naturalHeight: h } = img;
+
+        if (w < MIN_PIXEL_DIM || h < MIN_PIXEL_DIM) {
+          setValidationError(
+            `图片分辨率过低（${w}×${h}px）。宽和高均不得小于 ${MIN_PIXEL_DIM}px。`
+          );
+          return;
+        }
+
+        if (w > MAX_PIXEL_DIM || h > MAX_PIXEL_DIM) {
+          setValidationError(
+            `图片分辨率过高（${w}×${h}px）。宽和高均不得超过 ${MAX_PIXEL_DIM}px，请缩小后重试。`
+          );
+          return;
+        }
+
+        // All checks passed ✅
+        onImageSelected(result, file.type);
+      };
+
+      img.onerror = () => {
+        setValidationError('无法解析图片内容，文件可能已损坏，请重新选择。');
+      };
+
+      img.src = result;
     };
     reader.readAsDataURL(file);
   };
 
   return (
     <div className="w-full max-w-4xl mx-auto z-10 relative">
+
+      {/* ── Validation Error Banner ─────────────────────────────── */}
+      {validationError && (
+        <div
+          className="mb-4 flex items-start gap-3 px-5 py-4 rounded-2xl border border-rose-500/30 bg-rose-950/60 backdrop-blur-md shadow-xl shadow-rose-500/10 animate-fadeIn"
+          role="alert"
+        >
+          <AlertTriangle className="w-5 h-5 text-rose-400 flex-shrink-0 mt-0.5" />
+          <p className="text-sm text-rose-200 leading-relaxed flex-1">{validationError}</p>
+          <button
+            onClick={() => setValidationError(null)}
+            className="text-rose-400/60 hover:text-rose-300 transition-colors flex-shrink-0"
+            aria-label="关闭提示"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       <div
         className={`relative group flex flex-col items-center justify-center w-full min-h-[320px] md:min-h-[400px] rounded-[2rem] md:rounded-[2.5rem] border-2 border-dashed transition-all duration-500 ease-out cursor-pointer overflow-hidden
           ${dragActive 
@@ -92,7 +193,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
           type="file"
           className={`absolute inset-0 w-full h-full opacity-0 z-20 ${isAnalyzing ? 'pointer-events-none' : 'cursor-pointer'}`}
           onChange={handleChange}
-          accept="image/*"
+          accept="image/jpeg,image/png,image/webp,image/gif,image/bmp"
           disabled={isAnalyzing}
         />
         
@@ -171,7 +272,7 @@ const PhotoUploader: React.FC<PhotoUploaderProps> = ({ onImageSelected, isAnalyz
               <p className="text-base md:text-lg text-slate-400 max-w-md mb-8 leading-relaxed">
                 拖放图片到这里，或点击浏览选择。
                 <br />
-                <span className="text-sm text-slate-500 mt-2 block">支持 JPG、PNG、WEBP（最大 10MB）</span>
+                <span className="text-sm text-slate-500 mt-2 block">支持 {ALLOWED_EXTENSIONS_LABEL}（最大 {MAX_FILE_SIZE_MB}MB，分辨率 {MIN_PIXEL_DIM}–{MAX_PIXEL_DIM}px）</span>
               </p>
               
               <div className="px-6 py-3 md:px-8 md:py-3.5 bg-slate-700/50 rounded-full text-slate-200 text-sm font-semibold border border-slate-600 group-hover:bg-brand-600 group-hover:text-white group-hover:border-brand-500 transition-all duration-300 shadow-lg flex items-center gap-2">
