@@ -60,16 +60,25 @@ const getMuxingTool = () => String(getSearchParams().get('muxing-tool') || 'phot
 
 const storageKeyForTool = (tool: string) => `muxing-photo-coach-config:v1:${tool}`;
 
+const TRUSTED_ORIGINS = [
+  'https://muxing.001027.xyz',
+  'https://001027.xyz',
+  'http://localhost:3000',
+  'http://localhost:5173',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:5173',
+];
+
 const isTrustedOrigin = (origin: string) => {
+  if (TRUSTED_ORIGINS.includes(origin)) return true;
+
   const muxingHost = getMuxingHost();
-  if (!muxingHost) {
-    return true;
-  }
+  if (!muxingHost) return false;
 
   try {
     return new URL(muxingHost).origin === origin;
   } catch {
-    return true;
+    return false;
   }
 };
 

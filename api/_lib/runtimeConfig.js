@@ -1,29 +1,8 @@
-const LEGACY_NODES = [
-  {
-    name: "ice.v.ua",
-    url: "https://ice.v.ua/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-007db0ad23e3ab85918eb08de4187c0654bc2acb0988f71ac40add0017e98a37",
-  },
-  {
-    name: "sub.jlypx.de",
-    url: "https://sub.jlypx.de/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-f1250bccbce10ee23f410b4f94dd326afd56db4e768769c7fc6a4fd504e37022",
-  },
-  {
-    name: "newapi.linuxdo",
-    url: "https://newapi.linuxdo.edu.rs/v1/chat/completions",
-    model: "gpt-5.4",
-    key: "sk-dt49ElOb8YE8FsZN0TtgUuBtyN4cehJC74l0I6keH4hKC3bX",
-  },
-  {
-    name: "xingyungept",
-    url: "https://ai.xingyungept.cn/v1/chat/completions",
-    model: "gpt-5.2-Welfare",
-    key: "sk-HG7YvrZXvG1SljDuTQgvzs5gjBBHgHmhUjBXDkeEMCDg79Ny",
-  },
-];
+// api/_lib/runtimeConfig.js
+// Resolves AI API node configuration from:
+//   1. Request body/headers (muxing bridge)
+//   2. Vercel environment variables
+// NOTE: Legacy hardcoded nodes have been REMOVED for security.
 
 const REQUEST_LIMIT_PATTERNS = [
   /max_tokens/i,
@@ -111,6 +90,7 @@ function buildNodeFromConfig(config, defaultName) {
 }
 
 function resolveRuntimeNodes(req) {
+  // Priority 1: muxing bridge config from request body/headers
   const requestConfig = readRequestRuntimeConfig(req);
   if (requestConfig) {
     return {
@@ -120,6 +100,7 @@ function resolveRuntimeNodes(req) {
     };
   }
 
+  // Priority 2: Vercel environment variables
   const envUrl = normalizeChatUrl(
     process.env.AI_URL ||
       process.env.AI_API_URL ||
@@ -150,15 +131,15 @@ function resolveRuntimeNodes(req) {
           model: envModel,
           key: envKey,
         },
-        ...LEGACY_NODES,
       ],
     };
   }
 
+  // No configuration available — return empty nodes
   return {
-    source: "legacy",
+    source: "none",
     config: null,
-    nodes: LEGACY_NODES.slice(),
+    nodes: [],
   };
 }
 
