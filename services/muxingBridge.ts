@@ -33,6 +33,11 @@ const REQUEST_LIMIT_PATTERNS = [
 const getSearchParams = () =>
   typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search);
 
+export const isMuxingEmbeddedContext = () =>
+  typeof window !== 'undefined' &&
+  window.parent !== window &&
+  getSearchParams().get('muxing-protocol') === '1';
+
 const normalizeBaseUrl = (value: unknown) => String(value || '').trim().replace(/\/+$/, '');
 
 const normalizeConfig = (raw: unknown): MuxingApiConfig | null => {
@@ -132,9 +137,7 @@ export const isRouteRequestLimitIssue = (message: unknown) => {
 };
 
 export const requestMuxingContext = () => {
-  if (typeof window === 'undefined' || window.parent === window) return;
-  const params = getSearchParams();
-  if (params.get('muxing-protocol') !== '1') return;
+  if (!isMuxingEmbeddedContext()) return;
 
   const tool = getMuxingTool();
   window.parent.postMessage(
@@ -186,9 +189,7 @@ export const reportMuxingRouteStatus = (payload: {
   source?: string | null;
   apiStatus?: RouteApiStatus;
 }) => {
-  if (typeof window === 'undefined' || window.parent === window) return;
-  const params = getSearchParams();
-  if (params.get('muxing-protocol') !== '1') return;
+  if (!isMuxingEmbeddedContext()) return;
 
   window.parent.postMessage(
     {

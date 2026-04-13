@@ -8,6 +8,7 @@ import { getAnalysisPromptTemplate } from './services/geminiService';
 import {
   buildRuntimeConfigPayload,
   getStoredMuxingApiConfig,
+  isMuxingEmbeddedContext,
   isRouteRequestLimitIssue,
   normalizeRouteSource,
   readRouteStatusMeta,
@@ -19,6 +20,7 @@ import {
 import { PhotoAnalysis, AppState, SessionCostMetric, MentorChatState } from './types';
 import { sampleAnalyses } from './data/sampleAnalyses';
 
+const MUXING_CONFIG_FALLBACK_DELAY_MS = 1500;
 
 function App() {
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
@@ -28,7 +30,10 @@ function App() {
   const [manualJson, setManualJson] = useState("");
   const [showSlides, setShowSlides] = useState(false);
   const [initialSlide, setInitialSlide] = useState(1);
-  const [runtimeConfig, setRuntimeConfig] = useState<MuxingApiConfig | null>(() => getStoredMuxingApiConfig());
+  const [runtimeConfig, setRuntimeConfig] = useState<MuxingApiConfig | null>(() =>
+    isMuxingEmbeddedContext() ? null : getStoredMuxingApiConfig()
+  );
+  const [runtimeConfigReady, setRuntimeConfigReady] = useState(() => !isMuxingEmbeddedContext());
   
   // Lifted state for results tab to allow external control from header
   const [activeResultTab, setActiveResultTab] = useState<TabId>('overview');
@@ -42,10 +47,20 @@ function App() {
   const [analyzeStatus, setAnalyzeStatus] = useState<string>("");
 
   useEffect(() => {
+    let fallbackTimer: number | null = null;
+
     requestMuxingContext();
-    return subscribeToMuxingContext(
+    if (isMuxingEmbeddedContext()) {
+      fallbackTimer = window.setTimeout(() => {
+        setRuntimeConfig((current) => current || getStoredMuxingApiConfig());
+        setRuntimeConfigReady(true);
+      }, MUXING_CONFIG_FALLBACK_DELAY_MS);
+    }
+
+    const unsubscribe = subscribeToMuxingContext(
       (config, meta) => {
         setRuntimeConfig(config);
+        setRuntimeConfigReady(true);
         if (!meta.configured) {
           reportMuxingRouteStatus({ configured: false, source: 'bridge' });
         }
@@ -54,9 +69,17 @@ function App() {
         document.documentElement.dataset.muxingTheme = theme;
       }
     );
+
+    return () => {
+      if (fallbackTimer) {
+        window.clearTimeout(fallbackTimer);
+      }
+      unsubscribe();
+    };
   }, []);
 
   useEffect(() => {
+    if (!runtimeConfigReady) return;
     if (!runtimeConfig) return;
 
     let cancelled = false;
@@ -110,7 +133,7 @@ function App() {
     return () => {
       cancelled = true;
     };
-  }, [runtimeConfig]);
+  }, [runtimeConfig, runtimeConfigReady]);
 
   const handleImageSelected = async (base64: string, mimeType: string) => {
     setCurrentImage(base64);
