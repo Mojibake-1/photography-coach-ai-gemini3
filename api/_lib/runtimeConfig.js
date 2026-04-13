@@ -180,11 +180,23 @@ function setCommonHeaders(res) {
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 }
 
+function toSafeHeaderValue(value) {
+  const text = String(value || "").trim();
+  if (!text) return "";
+  // Node/Vercel response headers reject non-ASCII values such as Chinese node names.
+  return /^[\x20-\x7E]+$/.test(text) ? text : "";
+}
+
 function setRouteHeaders(res, meta = {}) {
-  if (meta.nodeName) res.setHeader("X-Active-Node", meta.nodeName);
-  if (meta.model) res.setHeader("X-Active-Model", meta.model);
-  if (meta.configSource) res.setHeader("X-Config-Source", meta.configSource);
-  if (meta.apiStatus) res.setHeader("X-Api-Status", meta.apiStatus);
+  const nodeName = toSafeHeaderValue(meta.nodeName);
+  const model = toSafeHeaderValue(meta.model);
+  const configSource = toSafeHeaderValue(meta.configSource);
+  const apiStatus = toSafeHeaderValue(meta.apiStatus);
+
+  if (nodeName) res.setHeader("X-Active-Node", nodeName);
+  if (model) res.setHeader("X-Active-Model", model);
+  if (configSource) res.setHeader("X-Config-Source", configSource);
+  if (apiStatus) res.setHeader("X-Api-Status", apiStatus);
 }
 
 function isRequestLimitError(message) {
