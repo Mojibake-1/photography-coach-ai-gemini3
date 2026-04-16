@@ -1,5 +1,6 @@
 const { readRequestBody, setCommonHeaders } = require("../_lib/runtimeConfig");
 const {
+  buildHermesAppUrl,
   encodeReportPayload,
   isAuthorizedRequest,
   normalizeReportPayload,
@@ -30,7 +31,7 @@ module.exports = async function handler(req, res) {
     const report = normalizeReportPayload(body);
     const encoded = encodeReportPayload(report);
     const baseUrl = resolvePublicBaseUrl(req);
-    const reportUrl = `${baseUrl}/api/hermes/report?payload=${encodeURIComponent(encoded.token)}`;
+    const reportUrl = buildHermesAppUrl(baseUrl, encoded.token);
 
     return res.status(200).json({
       success: true,

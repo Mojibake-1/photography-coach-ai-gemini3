@@ -5,7 +5,7 @@ This project now exposes a minimal backend flow for Hermes:
 1. Hermes receives an image from a colleague.
 2. Hermes runs its own prompt / skill and produces structured JSON.
 3. Hermes posts that JSON to this backend.
-4. The backend returns a readable public report link.
+4. The backend returns a public website link that opens the existing app result UI.
 5. Hermes sends the link back to the colleague.
 
 ## Endpoints
@@ -23,7 +23,7 @@ If `HERMES_REPORT_SECRET` is not configured, the route is open. Do not leave it 
 
 ### `GET /api/hermes/report?payload=...`
 
-Renders a readable HTML report from the compressed payload embedded in the URL.
+Compatibility route. It redirects to the main site with shared-report query params so the user lands in the same result UI as the normal website.
 
 ### `GET /api/hermes/report?payload=...&format=json`
 
@@ -173,3 +173,15 @@ Tradeoff:
 - the report link is self-contained, not a persistent server-side record
 
 If later you want permanent report history, replace the compressed URL payload with Blob / KV / database storage behind the same `POST /api/hermes/report-link` contract.
+
+## Important for Visual Parity
+
+If you want the Hermes link to look like the normal analysis page, include a public image URL:
+
+```json
+{
+  "previewUrl": "https://your-cdn.example.com/path/to/image.jpg"
+}
+```
+
+Without `previewUrl`, the site can still render the shared result view, but it will show a generated placeholder instead of the original image.

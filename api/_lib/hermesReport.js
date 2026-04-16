@@ -229,6 +229,15 @@ function resolvePublicBaseUrl(req) {
   return `${proto}://${host}`;
 }
 
+function buildHermesAppUrl(baseUrl, token) {
+  const normalizedBase = normalizeBaseUrl(baseUrl);
+  if (!normalizedBase) {
+    throw new Error("Unable to resolve Hermes app URL");
+  }
+
+  return `${normalizedBase}/?hr=1&p=${encodeURIComponent(token)}`;
+}
+
 function escapeHtml(value) {
   return String(value || "")
     .replace(/&/g, "&amp;")
@@ -751,6 +760,7 @@ function renderErrorHtml(message) {
 }
 
 module.exports = {
+  buildHermesAppUrl,
   decodeReportPayload,
   encodeReportPayload,
   escapeHtml,

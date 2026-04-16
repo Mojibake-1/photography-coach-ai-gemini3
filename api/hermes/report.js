@@ -1,8 +1,9 @@
 const { setCommonHeaders } = require("../_lib/runtimeConfig");
 const {
+  buildHermesAppUrl,
   decodeReportPayload,
   renderErrorHtml,
-  renderReportHtml,
+  resolvePublicBaseUrl,
 } = require("../_lib/hermesReport");
 
 function readQueryParam(req, key) {
@@ -33,14 +34,9 @@ module.exports = async function handler(req, res) {
       return res.status(200).send(JSON.stringify(report, null, 2));
     }
 
-    res.setHeader("Content-Type", "text/html; charset=utf-8");
-    res.setHeader("Cache-Control", "public, max-age=31536000, immutable");
-    res.setHeader("X-Robots-Tag", "noindex, nofollow");
-    res.setHeader(
-      "Content-Security-Policy",
-      "default-src 'self' data: https:; img-src 'self' data: https:; style-src 'unsafe-inline' 'self'; script-src 'none'; object-src 'none'; base-uri 'none'; frame-ancestors 'self'"
-    );
-    return res.status(200).send(renderReportHtml(report));
+    const baseUrl = resolvePublicBaseUrl(req);
+    res.setHeader("Location", buildHermesAppUrl(baseUrl, payload));
+    return res.status(307).end();
   } catch (error) {
     res.setHeader("Content-Type", "text/html; charset=utf-8");
     res.setHeader("X-Robots-Tag", "noindex, nofollow");

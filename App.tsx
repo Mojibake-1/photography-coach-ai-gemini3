@@ -6,6 +6,11 @@ import AnalysisResults, { TabId } from './components/AnalysisResults';
 import { PresentationSlides } from './components/PresentationSlides';
 import { getAnalysisPromptTemplate } from './services/geminiService';
 import {
+  clearHermesSharedReportParams,
+  isHermesSharedReportRequest,
+  loadHermesReportFromLocation,
+} from './services/hermesReport';
+import {
   buildRuntimeConfigPayload,
   getStoredMuxingApiConfig,
   isMuxingEmbeddedContext,
@@ -23,6 +28,7 @@ import { sampleAnalyses } from './data/sampleAnalyses';
 const MUXING_CONFIG_FALLBACK_DELAY_MS = 1500;
 
 function App() {
+  const sharedReportRequested = isHermesSharedReportRequest();
   const [appState, setAppState] = useState<AppState>(AppState.IDLE);
   const [currentImage, setCurrentImage] = useState<string | null>(null);
   const [analysis, setAnalysis] = useState<PhotoAnalysis | null>(null);
@@ -45,6 +51,35 @@ function App() {
   // We rely on the service layer to use shared credentials or fail gracefully with a specific error code.
 
   const [analyzeStatus, setAnalyzeStatus] = useState<string>("");
+
+  useEffect(() => {
+    if (!sharedReportRequested) return;
+
+    let cancelled = false;
+
+    const bootstrapSharedReport = async () => {
+      try {
+        const sharedReport = await loadHermesReportFromLocation();
+        if (cancelled) return;
+
+        document.title = `${sharedReport.title} | E-Commerce Vision AI`;
+        setCurrentImage(sharedReport.imageSrc);
+        setAnalysis(sharedReport.analysis);
+        setAppState(AppState.RESULTS);
+        setActiveResultTab('overview');
+      } catch (err: any) {
+        if (cancelled) return;
+        setError(err?.message || 'Failed to load Hermes shared report');
+        setAppState(AppState.ERROR);
+      }
+    };
+
+    bootstrapSharedReport();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [sharedReportRequested]);
 
   useEffect(() => {
     let fallbackTimer: number | null = null;
@@ -264,6 +299,10 @@ function App() {
   };
 
   const handleReset = () => {
+    if (sharedReportRequested) {
+      clearHermesSharedReportParams();
+      document.title = 'AI 摄影教练 | Gemini 3 Pro';
+    }
     setAppState(AppState.IDLE);
     setCurrentImage(null);
     setAnalysis(null);
