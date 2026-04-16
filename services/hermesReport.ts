@@ -1,4 +1,5 @@
 import { PhotoAnalysis, BoundingBox } from '../types';
+import { ungzip } from 'pako';
 
 type RawHermesReport = {
   reportId?: unknown;
@@ -161,24 +162,36 @@ export const clearHermesSharedReportParams = () => {
   window.history.replaceState({}, '', nextUrl);
 };
 
+const decodeBase64Url = (value: string): Uint8Array => {
+  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
+  const padded = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
+  const binary = window.atob(padded);
+  const bytes = new Uint8Array(binary.length);
+
+  for (let i = 0; i < binary.length; i += 1) {
+    bytes[i] = binary.charCodeAt(i);
+  }
+
+  return bytes;
+};
+
 export const decodeHermesReportPayload = async (token: string): Promise<RawHermesReport> => {
   const trimmed = token.trim();
   if (!trimmed) {
     throw new Error('Report payload is missing');
   }
 
-  const response = await fetch(`/api/hermes/report?format=json&payload=${encodeURIComponent(trimmed)}`, {
-    headers: {
-      Accept: 'application/json',
-    },
-  });
+  let json = '';
 
-  if (!response.ok) {
-    const message = await response.text().catch(() => '');
-    throw new Error(message || `Failed to load shared report (${response.status})`);
+  if (trimmed.startsWith('gz1.')) {
+    json = ungzip(decodeBase64Url(trimmed.slice(4)), { to: 'string' });
+  } else if (trimmed.startsWith('b64.')) {
+    json = new TextDecoder().decode(decodeBase64Url(trimmed.slice(4)));
+  } else {
+    throw new Error('Unsupported Hermes report format');
   }
 
-  return (await response.json()) as RawHermesReport;
+  return JSON.parse(json) as RawHermesReport;
 };
 
 export const loadHermesReportFromLocation = async (): Promise<{
