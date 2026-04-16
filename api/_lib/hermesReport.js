@@ -3,6 +3,16 @@ const zlib = require("zlib");
 
 const MAX_REPORT_JSON_BYTES = Number(process.env.HERMES_REPORT_MAX_JSON_BYTES || 24 * 1024);
 const MAX_REPORT_TOKEN_LENGTH = Number(process.env.HERMES_REPORT_MAX_TOKEN_LENGTH || 6000);
+const CJK_TEXT_PATTERN = /[\u3400-\u9fff]/;
+const LATIN_WORD_PATTERN = /[A-Za-z]{2,}/;
+
+class HermesValidationError extends Error {
+  constructor(message, statusCode = 422) {
+    super(message);
+    this.name = "HermesValidationError";
+    this.statusCode = statusCode;
+  }
+}
 
 function toPlainObject(value) {
   return value && typeof value === "object" && !Array.isArray(value) ? value : null;
@@ -10,6 +20,32 @@ function toPlainObject(value) {
 
 function toTrimmedString(value) {
   return typeof value === "string" ? value.trim() : "";
+}
+
+function cleanPossiblyBrokenText(value) {
+  const normalized = toTrimmedString(value).replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+
+  const stripped = normalized
+    .replace(/[\u0000-\u001f\u007f]/g, "")
+    .replace(/\uFFFD+/g, " ")
+    .replace(/\?{4,}/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (!stripped) return "";
+
+  const dense = stripped.replace(/["'‘’“”.,;:!?，。！？、()[\]{}<>《》【】/\\|_\-\s]/g, "");
+  if (!dense) return "";
+
+  const placeholderCount = (stripped.match(/[\?\uFFFD]/g) || []).length;
+  const placeholderRatio = dense.length ? placeholderCount / dense.length : 0;
+
+  if (!CJK_TEXT_PATTERN.test(dense) && !LATIN_WORD_PATTERN.test(dense) && placeholderRatio >= 0.35) {
+    return "";
+  }
+
+  return stripped;
 }
 
 function toNonEmptyArray(value) {
@@ -84,6 +120,54 @@ function normalizeSource(source, body) {
   };
 }
 
+function collectMeaningfulAnalysisTexts(analysis) {
+  const source = toPlainObject(analysis) || {};
+  const critique = toPlainObject(source.critique) || {};
+  const thinking = toPlainObject(source.thinking) || {};
+
+  const scalarCandidates = [
+    source.summary,
+    source.verdict,
+    critique.overall,
+    critique.composition,
+    critique.lighting,
+    critique.technique,
+  ];
+
+  const listCandidates = [
+    ...toNonEmptyArray(source.strengths),
+    ...toNonEmptyArray(source.improvements),
+    ...toNonEmptyArray(source.learningPath),
+    ...toNonEmptyArray(source.nextSteps),
+    ...toNonEmptyArray(thinking.observations),
+    ...toNonEmptyArray(thinking.reasoningSteps),
+    ...toNonEmptyArray(thinking.priorityFixes),
+  ];
+
+  return [...scalarCandidates, ...listCandidates]
+    .map((item) => cleanPossiblyBrokenText(item))
+    .filter(Boolean);
+}
+
+function validateReportPayload(report) {
+  const source = toPlainObject(report) || {};
+  const title = cleanPossiblyBrokenText(source.title);
+  const analysis = toPlainObject(source.analysis) || {};
+  const meaningfulTexts = collectMeaningfulAnalysisTexts(analysis);
+
+  if (!meaningfulTexts.length) {
+    throw new HermesValidationError(
+      "Analysis text is missing or corrupted. Do not create a share link for this payload."
+    );
+  }
+
+  if (!title && !cleanPossiblyBrokenText(toPlainObject(source.source)?.fileName)) {
+    throw new HermesValidationError("Report title is missing or corrupted.");
+  }
+
+  return report;
+}
+
 function normalizeReportPayload(body) {
   const source = normalizeSource(body.source, body);
   const analysis =
@@ -116,7 +200,7 @@ function normalizeReportPayload(body) {
     metadata,
   });
 
-  return {
+  return validateReportPayload({
     version: 1,
     reportId: toTrimmedString(body.reportId) || buildReportId(reportSeed),
     title,
@@ -128,7 +212,7 @@ function normalizeReportPayload(body) {
     source,
     metadata,
     analysis,
-  };
+  });
 }
 
 function encodeReportPayload(report) {
@@ -764,6 +848,7 @@ module.exports = {
   decodeReportPayload,
   encodeReportPayload,
   escapeHtml,
+  HermesValidationError,
   isAuthorizedRequest,
   normalizeReportPayload,
   renderErrorHtml,

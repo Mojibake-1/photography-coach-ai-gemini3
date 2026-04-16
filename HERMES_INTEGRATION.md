@@ -148,6 +148,17 @@ Success response:
 }
 ```
 
+Validation failure response:
+
+```json
+{
+  "success": false,
+  "error": "Analysis text is missing or corrupted. Do not create a share link for this payload."
+}
+```
+
+The route returns `422` for low-information or obviously corrupted analysis text. Hermes should treat that as a content-quality failure, not a transport failure.
+
 ## Hermes-Side Workflow Notes
 
 - Keep Hermes output structured and concise. Do not include raw OCR dumps or base64 image blobs in the analysis JSON.
@@ -156,6 +167,9 @@ Success response:
   - reduce long reasoning chains
   - reduce duplicate summaries
   - omit raw tool traces
+- If the backend returns `422`, do not send a share link:
+  - retry the upstream analysis step, or
+  - fall back to the normal text reply path
 
 ## Why This Design
 

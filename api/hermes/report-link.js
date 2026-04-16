@@ -44,7 +44,8 @@ module.exports = async function handler(req, res) {
       },
     });
   } catch (error) {
-    return res.status(400).json({
+    const statusCode = Number.isInteger(error && error.statusCode) ? error.statusCode : 400;
+    return res.status(statusCode).json({
       success: false,
       error: error && error.message ? error.message : "Unable to create report link",
     });
