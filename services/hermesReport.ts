@@ -141,29 +141,6 @@ const buildPlaceholderImage = (title: string) => {
   return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
 };
 
-const decodeBase64Url = (value: string): Uint8Array => {
-  const normalized = value.replace(/-/g, '+').replace(/_/g, '/');
-  const padded = normalized + '='.repeat((4 - (normalized.length % 4 || 4)) % 4);
-  const binary = window.atob(padded);
-  const bytes = new Uint8Array(binary.length);
-
-  for (let i = 0; i < binary.length; i += 1) {
-    bytes[i] = binary.charCodeAt(i);
-  }
-
-  return bytes;
-};
-
-const gunzipText = async (bytes: Uint8Array): Promise<string> => {
-  if (typeof DecompressionStream === 'undefined') {
-    throw new Error('Current browser does not support gzip report decoding');
-  }
-
-  const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
-  const buffer = await new Response(stream).arrayBuffer();
-  return new TextDecoder().decode(buffer);
-};
-
 export const isHermesSharedReportRequest = () => {
   if (typeof window === 'undefined') return false;
   const params = new URLSearchParams(window.location.search);
@@ -190,17 +167,18 @@ export const decodeHermesReportPayload = async (token: string): Promise<RawHerme
     throw new Error('Report payload is missing');
   }
 
-  let json = '';
+  const response = await fetch(`/api/hermes/report?format=json&payload=${encodeURIComponent(trimmed)}`, {
+    headers: {
+      Accept: 'application/json',
+    },
+  });
 
-  if (trimmed.startsWith('gz1.')) {
-    json = await gunzipText(decodeBase64Url(trimmed.slice(4)));
-  } else if (trimmed.startsWith('b64.')) {
-    json = new TextDecoder().decode(decodeBase64Url(trimmed.slice(4)));
-  } else {
-    throw new Error('Unsupported Hermes report format');
+  if (!response.ok) {
+    const message = await response.text().catch(() => '');
+    throw new Error(message || `Failed to load shared report (${response.status})`);
   }
 
-  return JSON.parse(json) as RawHermesReport;
+  return (await response.json()) as RawHermesReport;
 };
 
 export const loadHermesReportFromLocation = async (): Promise<{
