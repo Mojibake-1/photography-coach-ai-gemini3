@@ -10,19 +10,54 @@ type RawHermesReport = {
 
 const SCORE_MAX = 10;
 const SCORE_MIN = 0;
+const DEFAULT_TITLE = 'Hermes 共享分析';
+const DEFAULT_SUMMARY = 'Hermes 已返回结构化分析，但摘要内容不可用。';
+const DEFAULT_STRENGTHS = ['未提供可展示的优点摘要。'];
+const DEFAULT_IMPROVEMENTS = ['未提供明确的改进建议。'];
+const DEFAULT_LEARNING_PATH = ['请结合上方评语与改进建议继续迭代。'];
+const DEFAULT_SETTING_VALUE = '未提供';
 
 const PLACEHOLDER_BG = '#0b1020';
 const PLACEHOLDER_PANEL = '#121a30';
 const PLACEHOLDER_TEXT = '#e5eefc';
 const PLACEHOLDER_MUTED = '#9fb0cf';
+const CJK_TEXT_PATTERN = /[\u3400-\u9fff]/;
+const LATIN_WORD_PATTERN = /[A-Za-z]{2,}/;
 
 const toObject = (value: unknown): Record<string, unknown> | null => {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
   return value as Record<string, unknown>;
 };
 
+const cleanPossiblyBrokenText = (input: string): string => {
+  const normalized = input.replace(/\s+/g, ' ').trim();
+  if (!normalized) return '';
+
+  const stripped = normalized
+    .replace(/[\u0000-\u001f\u007f]/g, '')
+    .replace(/\uFFFD+/g, ' ')
+    .replace(/\?{4,}/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!stripped) return '';
+
+  const dense = stripped.replace(/[“”"'‘’.,;:!?，。！？、()[\]{}<>《》【】/\\|\-_\s]/g, '');
+  if (!dense) return '';
+
+  const placeholderCount = (stripped.match(/[\?\uFFFD]/g) || []).length;
+  const denseLength = dense.length;
+  const placeholderRatio = denseLength ? placeholderCount / denseLength : 0;
+
+  if (!CJK_TEXT_PATTERN.test(dense) && !LATIN_WORD_PATTERN.test(dense) && placeholderRatio >= 0.35) {
+    return '';
+  }
+
+  return stripped;
+};
+
 const toText = (value: unknown): string => {
-  return typeof value === 'string' ? value.trim() : '';
+  return typeof value === 'string' ? cleanPossiblyBrokenText(value) : '';
 };
 
 const toStringArray = (value: unknown): string[] => {
@@ -74,8 +109,8 @@ const normalizeBoundingBoxes = (value: unknown): BoundingBox[] => {
         y: normalizePercent(source.y),
         width: normalizePercent(source.width),
         height: normalizePercent(source.height),
-        description: toText(source.description) || 'Issue detected in this area.',
-        suggestion: toText(source.suggestion) || 'Review this area and refine the execution.',
+        description: toText(source.description) || '该区域存在需要复核的问题。',
+        suggestion: toText(source.suggestion) || '建议复核此区域并重新处理。',
       } satisfies BoundingBox;
     })
     .filter((item): item is BoundingBox => Boolean(item));
@@ -183,6 +218,7 @@ export const loadHermesReportFromLocation = async (): Promise<{
   const critique = toObject(analysisSource.critique) || {};
   const settingsEstimate = toObject(analysisSource.settingsEstimate) || {};
   const thinking = toObject(analysisSource.thinking) || {};
+  const source = toObject((report as RawHermesReport & { source?: unknown }).source) || {};
 
   const overall = toText(critique.overall || analysisSource.summary || analysisSource.verdict);
 
@@ -195,22 +231,22 @@ export const loadHermesReportFromLocation = async (): Promise<{
       subjectImpact: clampScore(scores.subjectImpact),
     },
     critique: {
-      composition: toText(critique.composition) || overall || 'No composition notes provided.',
-      lighting: toText(critique.lighting) || overall || 'No lighting notes provided.',
-      technique: toText(critique.technique) || overall || 'No technique notes provided.',
-      overall: overall || 'Hermes delivered a structured report without a summary.',
+      composition: toText(critique.composition) || overall || '未提供构图评语。',
+      lighting: toText(critique.lighting) || overall || '未提供光线评语。',
+      technique: toText(critique.technique) || overall || '未提供技术评语。',
+      overall: overall || DEFAULT_SUMMARY,
     },
-    strengths: ensureMinimumList(toStringArray(analysisSource.strengths), ['No explicit strengths provided.']),
-    improvements: ensureMinimumList(toStringArray(analysisSource.improvements), ['No explicit improvements provided.']),
+    strengths: ensureMinimumList(toStringArray(analysisSource.strengths), DEFAULT_STRENGTHS),
+    improvements: ensureMinimumList(toStringArray(analysisSource.improvements), DEFAULT_IMPROVEMENTS),
     learningPath: ensureMinimumList(
       toStringArray(analysisSource.learningPath || analysisSource.nextSteps),
-      ['Review the critique and improvements for next actions.']
+      DEFAULT_LEARNING_PATH
     ),
     settingsEstimate: {
-      focalLength: toText(settingsEstimate.focalLength) || 'N/A',
-      aperture: toText(settingsEstimate.aperture) || 'N/A',
-      shutterSpeed: toText(settingsEstimate.shutterSpeed) || 'N/A',
-      iso: toText(settingsEstimate.iso) || 'N/A',
+      focalLength: toText(settingsEstimate.focalLength) || DEFAULT_SETTING_VALUE,
+      aperture: toText(settingsEstimate.aperture) || DEFAULT_SETTING_VALUE,
+      shutterSpeed: toText(settingsEstimate.shutterSpeed) || DEFAULT_SETTING_VALUE,
+      iso: toText(settingsEstimate.iso) || DEFAULT_SETTING_VALUE,
     },
     boundingBoxes: normalizeBoundingBoxes(analysisSource.boundingBoxes),
     tokenUsage: {
@@ -229,7 +265,7 @@ export const loadHermesReportFromLocation = async (): Promise<{
     },
   };
 
-  const title = toText(report.title) || 'Hermes shared report';
+  const title = toText(report.title) || toText(source.fileName) || DEFAULT_TITLE;
   const imageSrc = toText(report.previewUrl) || buildPlaceholderImage(title);
 
   return {
