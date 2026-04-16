@@ -6,6 +6,12 @@
     },
     "api/analyze/status.js": {
       "maxDuration": 30
+    },
+    "api/hermes/report-link.js": {
+      "maxDuration": 15
+    },
+    "api/hermes/report.js": {
+      "maxDuration": 15
     }
   },
   "rewrites": [
